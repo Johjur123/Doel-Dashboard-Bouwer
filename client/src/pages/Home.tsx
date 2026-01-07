@@ -1,5 +1,4 @@
 import { useGoals, useUsers } from "@/hooks/use-goals";
-import { CouplesProfile } from "@/components/CouplesProfile";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { SavingsForecast } from "@/components/SavingsForecast";
 import { MonthlyReport } from "@/components/MonthlyReport";
@@ -129,24 +128,14 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="mb-6">
-              <CouplesProfile />
-            </div>
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.15 }}
-            >
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
-                <span className="bg-gradient-to-r from-rose-500 via-violet-500 to-rose-500 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
-                  {user1Name} & {user2Name}
-                </span>
-              </h1>
-              <p className="text-muted-foreground">
-                Samen bouwen aan jullie toekomst
-              </p>
-            </motion.div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
+              <span className="bg-gradient-to-r from-rose-500 via-violet-500 to-rose-500 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
+                {user1Name} & {user2Name}
+              </span>
+            </h1>
+            <p className="text-muted-foreground">
+              Samen bouwen aan jullie toekomst
+            </p>
           </motion.div>
 
           <motion.div 
