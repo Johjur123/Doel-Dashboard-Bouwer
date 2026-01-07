@@ -7,7 +7,7 @@ import { Confetti, useConfetti } from "@/components/Confetti";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Goal, RoadmapStep, RoomItem } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Check, ChevronDown, ChevronUp, Minus, Sparkles, ArrowLeft, Sun, Moon } from "lucide-react";
+import { Plus, Check, ChevronDown, ChevronUp, Minus, Sparkles, ArrowLeft, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
 
@@ -96,6 +96,56 @@ export default function Dashboard() {
     if (!items[itemIndex].completed === false && completedCount === items.length) {
       confetti.trigger();
     }
+  };
+
+  const handleAddRoomItem = (goal: Goal, title: string) => {
+    if (!title.trim()) return;
+    const metadata = (goal.metadata || {}) as any;
+    const items = [...(metadata.items || []), { title: title.trim(), completed: false }];
+    updateGoal.mutate({
+      id: goal.id,
+      targetValue: items.length,
+      metadata: { ...metadata, items },
+    });
+  };
+
+  const handleRemoveRoomItem = (e: React.MouseEvent, goal: Goal, itemIndex: number) => {
+    e.stopPropagation();
+    if (!goal.metadata) return;
+    const metadata = goal.metadata as any;
+    const items = (metadata.items as RoomItem[]).filter((_, i) => i !== itemIndex);
+    const completedCount = items.filter(i => i.completed).length;
+    updateGoal.mutate({
+      id: goal.id,
+      currentValue: completedCount,
+      targetValue: items.length,
+      metadata: { ...metadata, items },
+    });
+  };
+
+  const handleAddRoadmapStep = (goal: Goal, title: string) => {
+    if (!title.trim()) return;
+    const metadata = (goal.metadata || {}) as any;
+    const steps = [...(metadata.steps || []), { title: title.trim(), completed: false }];
+    updateGoal.mutate({
+      id: goal.id,
+      targetValue: steps.length,
+      metadata: { ...metadata, steps },
+    });
+  };
+
+  const handleRemoveRoadmapStep = (e: React.MouseEvent, goal: Goal, stepIndex: number) => {
+    e.stopPropagation();
+    if (!goal.metadata) return;
+    const metadata = goal.metadata as any;
+    const steps = (metadata.steps as RoadmapStep[]).filter((_, i) => i !== stepIndex);
+    const completedCount = steps.filter(s => s.completed).length;
+    updateGoal.mutate({
+      id: goal.id,
+      currentValue: completedCount,
+      targetValue: steps.length,
+      metadata: { ...metadata, steps },
+    });
   };
 
   const toggleExpanded = (e: React.MouseEvent, goalId: number) => {
@@ -190,6 +240,10 @@ export default function Dashboard() {
                         onToggleRoomItem={handleToggleRoomItem}
                         onToggleExpand={toggleExpanded}
                         onMilestoneToggle={handleMilestoneToggle}
+                        onAddRoomItem={handleAddRoomItem}
+                        onRemoveRoomItem={handleRemoveRoomItem}
+                        onAddRoadmapStep={handleAddRoadmapStep}
+                        onRemoveRoadmapStep={handleRemoveRoadmapStep}
                       />
                     ))
                   )}
@@ -219,9 +273,13 @@ interface GoalCardProps {
   onToggleRoomItem: (e: React.MouseEvent, goal: Goal, itemIndex: number) => void;
   onToggleExpand: (e: React.MouseEvent, goalId: number) => void;
   onMilestoneToggle: (e: React.MouseEvent, goal: Goal) => void;
+  onAddRoomItem: (goal: Goal, title: string) => void;
+  onRemoveRoomItem: (e: React.MouseEvent, goal: Goal, itemIndex: number) => void;
+  onAddRoadmapStep: (goal: Goal, title: string) => void;
+  onRemoveRoadmapStep: (e: React.MouseEvent, goal: Goal, stepIndex: number) => void;
 }
 
-function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, onToggleRoomItem, onToggleExpand, onMilestoneToggle }: GoalCardProps) {
+function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, onToggleRoomItem, onToggleExpand, onMilestoneToggle, onAddRoomItem, onRemoveRoomItem, onAddRoadmapStep, onRemoveRoadmapStep }: GoalCardProps) {
   if (goal.category === 'lifestyle') {
     return <LifestyleCard goal={goal} index={index} onClick={onClick} onQuickLog={onQuickLog} />;
   }
@@ -229,10 +287,10 @@ function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, on
     return <SavingsCard goal={goal} index={index} onClick={onClick} onQuickLog={onQuickLog} />;
   }
   if (goal.category === 'business') {
-    return <BusinessCard goal={goal} index={index} expanded={expanded} onClick={onClick} onToggleStep={onToggleStep} onToggleExpand={onToggleExpand} />;
+    return <BusinessCard goal={goal} index={index} expanded={expanded} onClick={onClick} onToggleStep={onToggleStep} onToggleExpand={onToggleExpand} onAddStep={onAddRoadmapStep} onRemoveStep={onRemoveRoadmapStep} />;
   }
   if (goal.category === 'casa') {
-    return <CasaCard goal={goal} index={index} expanded={expanded} onClick={onClick} onToggleRoomItem={onToggleRoomItem} onToggleExpand={onToggleExpand} />;
+    return <CasaCard goal={goal} index={index} expanded={expanded} onClick={onClick} onToggleRoomItem={onToggleRoomItem} onToggleExpand={onToggleExpand} onAddItem={onAddRoomItem} onRemoveItem={onRemoveRoomItem} />;
   }
   if (goal.category === 'milestones') {
     return <MilestoneCard goal={goal} index={index} onClick={onClick} onToggle={onMilestoneToggle} />;
@@ -353,11 +411,32 @@ function SavingsCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index: 
   );
 }
 
-function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleExpand }: { goal: Goal; index: number; expanded: boolean; onClick: () => void; onToggleStep: (e: React.MouseEvent, goal: Goal, stepIndex: number, substepIndex?: number) => void; onToggleExpand: (e: React.MouseEvent, goalId: number) => void }) {
+function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleExpand, onAddStep, onRemoveStep }: { 
+  goal: Goal; 
+  index: number; 
+  expanded: boolean; 
+  onClick: () => void; 
+  onToggleStep: (e: React.MouseEvent, goal: Goal, stepIndex: number, substepIndex?: number) => void; 
+  onToggleExpand: (e: React.MouseEvent, goalId: number) => void;
+  onAddStep: (goal: Goal, title: string) => void;
+  onRemoveStep: (e: React.MouseEvent, goal: Goal, stepIndex: number) => void;
+}) {
+  const [newStepTitle, setNewStepTitle] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  
   const metadata = goal.metadata as any;
   const steps = (metadata?.steps || []) as RoadmapStep[];
   const completedSteps = steps.filter(s => s.completed).length;
   const progress = steps.length > 0 ? (completedSteps / steps.length) * 100 : 0;
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (newStepTitle.trim()) {
+      onAddStep(goal, newStepTitle);
+      setNewStepTitle("");
+      setIsAdding(false);
+    }
+  };
 
   return (
     <motion.div 
@@ -415,18 +494,20 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.03 }}
-                    onClick={(e) => onToggleStep(e, goal, idx)}
                     className={cn(
-                      "flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors",
+                      "flex items-center gap-3 p-2 rounded-lg transition-colors group",
                       step.completed ? "bg-emerald-500/10" : "bg-secondary/50 hover:bg-secondary"
                     )}
                   >
-                    <div className={cn(
-                      "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
-                      step.completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30"
-                    )}>
+                    <button
+                      onClick={(e) => onToggleStep(e, goal, idx)}
+                      className={cn(
+                        "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
+                        step.completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30"
+                      )}
+                    >
                       {step.completed && <Check className="w-3 h-3" />}
-                    </div>
+                    </button>
                     <span className={cn(
                       "text-sm font-medium flex-1",
                       step.completed && "text-emerald-600 dark:text-emerald-400"
@@ -438,6 +519,13 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
                         {step.substeps.filter(s => s.completed).length}/{step.substeps.length}
                       </span>
                     )}
+                    <button
+                      onClick={(e) => onRemoveStep(e, goal, idx)}
+                      className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
+                      data-testid={`button-remove-step-${goal.id}-${idx}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </motion.div>
                   
                   {step.substeps && step.substeps.length > 0 && (
@@ -467,6 +555,51 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
                   )}
                 </div>
               ))}
+              
+              <AnimatePresence>
+                {isAdding ? (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex gap-2 pt-2"
+                  >
+                    <input
+                      type="text"
+                      value={newStepTitle}
+                      onChange={(e) => setNewStepTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAdd(e as any);
+                        if (e.key === "Escape") setIsAdding(false);
+                      }}
+                      placeholder="Nieuwe stap..."
+                      className="flex-1 px-3 py-2 rounded-lg bg-secondary border-0 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                      data-testid={`input-new-step-${goal.id}`}
+                    />
+                    <button
+                      onClick={handleAdd}
+                      disabled={!newStepTitle.trim()}
+                      className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-blue-600 transition-colors"
+                      data-testid={`button-save-step-${goal.id}`}
+                    >
+                      Toevoegen
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onClick={(e) => { e.stopPropagation(); setIsAdding(true); }}
+                    className="flex items-center gap-2 w-full p-2 rounded-lg text-sm text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
+                    data-testid={`button-add-step-${goal.id}`}
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Stap toevoegen</span>
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
@@ -475,12 +608,33 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
   );
 }
 
-function CasaCard({ goal, index, expanded, onClick, onToggleRoomItem, onToggleExpand }: { goal: Goal; index: number; expanded: boolean; onClick: () => void; onToggleRoomItem: (e: React.MouseEvent, goal: Goal, itemIndex: number) => void; onToggleExpand: (e: React.MouseEvent, goalId: number) => void }) {
+function CasaCard({ goal, index, expanded, onClick, onToggleRoomItem, onToggleExpand, onAddItem, onRemoveItem }: { 
+  goal: Goal; 
+  index: number; 
+  expanded: boolean; 
+  onClick: () => void; 
+  onToggleRoomItem: (e: React.MouseEvent, goal: Goal, itemIndex: number) => void; 
+  onToggleExpand: (e: React.MouseEvent, goalId: number) => void;
+  onAddItem: (goal: Goal, title: string) => void;
+  onRemoveItem: (e: React.MouseEvent, goal: Goal, itemIndex: number) => void;
+}) {
+  const [newItemTitle, setNewItemTitle] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  
   const metadata = goal.metadata as any;
   const items = (metadata?.items || []) as RoomItem[];
   const completedCount = items.filter(i => i.completed).length;
   const progress = items.length > 0 ? (completedCount / items.length) * 100 : 0;
   const isComplete = progress >= 100;
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (newItemTitle.trim()) {
+      onAddItem(goal, newItemTitle);
+      setNewItemTitle("");
+      setIsAdding(false);
+    }
+  };
 
   return (
     <motion.div 
@@ -538,26 +692,80 @@ function CasaCard({ goal, index, expanded, onClick, onToggleRoomItem, onToggleEx
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.03 }}
-                  onClick={(e) => onToggleRoomItem(e, goal, idx)}
                   className={cn(
-                    "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors text-sm",
+                    "flex items-center gap-2 p-2 rounded-lg transition-colors text-sm group",
                     item.completed ? "bg-emerald-500/10" : "hover:bg-secondary"
                   )}
                 >
-                  <div className={cn(
-                    "w-4 h-4 rounded border flex items-center justify-center shrink-0",
-                    item.completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30"
-                  )}>
+                  <button
+                    onClick={(e) => onToggleRoomItem(e, goal, idx)}
+                    className={cn(
+                      "w-4 h-4 rounded border flex items-center justify-center shrink-0",
+                      item.completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30"
+                    )}
+                  >
                     {item.completed && <Check className="w-2.5 h-2.5" />}
-                  </div>
+                  </button>
                   <span className={cn(
                     "flex-1 truncate",
                     item.completed && "text-emerald-600 dark:text-emerald-400 line-through"
                   )}>
                     {item.title}
                   </span>
+                  <button
+                    onClick={(e) => onRemoveItem(e, goal, idx)}
+                    className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
+                    data-testid={`button-remove-item-${goal.id}-${idx}`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </motion.div>
               ))}
+              
+              <AnimatePresence>
+                {isAdding ? (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex gap-2 pt-1"
+                  >
+                    <input
+                      type="text"
+                      value={newItemTitle}
+                      onChange={(e) => setNewItemTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAdd(e as any);
+                        if (e.key === "Escape") setIsAdding(false);
+                      }}
+                      placeholder="Nieuw item..."
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-secondary border-0 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                      data-testid={`input-new-item-${goal.id}`}
+                    />
+                    <button
+                      onClick={handleAdd}
+                      disabled={!newItemTitle.trim()}
+                      className="px-2.5 py-1.5 bg-orange-500 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-orange-600 transition-colors"
+                      data-testid={`button-save-item-${goal.id}`}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onClick={(e) => { e.stopPropagation(); setIsAdding(true); }}
+                    className="flex items-center justify-center gap-1 w-full p-1.5 rounded-lg text-xs text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-colors"
+                    data-testid={`button-add-item-${goal.id}`}
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Toevoegen</span>
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
