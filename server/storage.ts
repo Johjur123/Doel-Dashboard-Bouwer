@@ -5,7 +5,9 @@ import { eq, desc } from "drizzle-orm";
 export interface IStorage {
   getGoals(): Promise<Goal[]>;
   getGoal(id: number): Promise<Goal | undefined>;
+  createGoal(goal: InsertGoal): Promise<Goal>;
   updateGoal(id: number, goal: Partial<InsertGoal>): Promise<Goal | undefined>;
+  deleteGoal(id: number): Promise<void>;
   createLog(log: InsertLog): Promise<Log>;
   getLogs(goalId: number): Promise<Log[]>;
   getAllLogs(): Promise<Log[]>;
@@ -36,9 +38,23 @@ export class DatabaseStorage implements IStorage {
     return goal;
   }
 
+  async createGoal(goal: InsertGoal): Promise<Goal> {
+    const [newGoal] = await db.insert(goals).values(goal).returning();
+    return newGoal;
+  }
+
   async updateGoal(id: number, update: Partial<InsertGoal>): Promise<Goal | undefined> {
     const [updated] = await db.update(goals).set(update).where(eq(goals.id, id)).returning();
     return updated;
+  }
+
+  async deleteGoal(id: number): Promise<void> {
+    await db.delete(logs).where(eq(logs.goalId, id));
+    await db.delete(goalNotes).where(eq(goalNotes.goalId, id));
+    await db.delete(milestonePhotos).where(eq(milestonePhotos.goalId, id));
+    await db.delete(periodHistory).where(eq(periodHistory.goalId, id));
+    await db.delete(activities).where(eq(activities.goalId, id));
+    await db.delete(goals).where(eq(goals.id, id));
   }
 
   async createLog(log: InsertLog): Promise<Log> {

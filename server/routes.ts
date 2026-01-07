@@ -22,6 +22,30 @@ export async function registerRoutes(
     res.json(goal);
   });
 
+  app.post(api.goals.create.path, async (req, res) => {
+    try {
+      const input = api.goals.create.input.parse(req.body);
+      const goal = await storage.createGoal(input);
+      
+      const users = await storage.getUsers();
+      if (users.length > 0) {
+        await storage.createActivity({
+          userId: users[0].id,
+          goalId: goal.id,
+          action: "create",
+          description: `Nieuw doel: ${goal.title}`,
+        });
+      }
+      
+      res.status(201).json(goal);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
   app.patch(api.goals.update.path, async (req, res) => {
     try {
       const input = api.goals.update.input.parse(req.body);
@@ -34,6 +58,14 @@ export async function registerRoutes(
       }
       throw err;
     }
+  });
+
+  app.delete(api.goals.delete.path, async (req, res) => {
+    const goal = await storage.getGoal(Number(req.params.id));
+    if (!goal) return res.status(404).json({ message: "Goal not found" });
+    
+    await storage.deleteGoal(Number(req.params.id));
+    res.status(204).send();
   });
 
   app.post(api.logs.create.path, async (req, res) => {

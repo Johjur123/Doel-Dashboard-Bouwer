@@ -27,6 +27,25 @@ export function useGoal(id: number) {
   });
 }
 
+export function useCreateGoal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (goal: InsertGoal) => {
+      const res = await fetch(api.goals.create.path, {
+        method: api.goals.create.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(goal),
+      });
+      if (!res.ok) throw new Error("Failed to create goal");
+      return api.goals.create.responses[201].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.goals.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
+    },
+  });
+}
+
 export function useUpdateGoal() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -42,6 +61,23 @@ export function useUpdateGoal() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.goals.list.path] });
+    },
+  });
+}
+
+export function useDeleteGoal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.goals.delete.path, { id });
+      const res = await fetch(url, {
+        method: api.goals.delete.method,
+      });
+      if (!res.ok) throw new Error("Failed to delete goal");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.goals.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
     },
   });
 }

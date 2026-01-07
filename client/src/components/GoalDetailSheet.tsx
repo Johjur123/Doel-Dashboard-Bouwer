@@ -1,7 +1,20 @@
 import { useState } from "react";
 import { Goal, RoadmapStep, RoomItem } from "@shared/schema";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useLogs, useCreateLog, useUpdateGoal } from "@/hooks/use-goals";
+import { useLogs, useCreateLog, useUpdateGoal, useDeleteGoal } from "@/hooks/use-goals";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { GoalNotes } from "@/components/GoalNotes";
 import { PeriodHistory } from "@/components/PeriodHistory";
 import { ProgressChart } from "@/components/ProgressChart";
@@ -29,8 +42,29 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
   const { data: logs, isLoading } = useLogs(goal?.id || 0);
   const createLog = useCreateLog();
   const updateGoal = useUpdateGoal();
+  const deleteGoal = useDeleteGoal();
+  const { toast } = useToast();
 
   if (!goal) return null;
+
+  const handleDelete = () => {
+    deleteGoal.mutate(goal.id, {
+      onSuccess: () => {
+        toast({
+          title: "Doel verwijderd",
+          description: `${goal.title} is verwijderd`,
+        });
+        onOpenChange(false);
+      },
+      onError: () => {
+        toast({
+          title: "Fout",
+          description: "Kon doel niet verwijderen",
+          variant: "destructive",
+        });
+      },
+    });
+  };
 
   const handleLog = () => {
     createLog.mutate({
@@ -143,19 +177,42 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-background">
         <SheetHeader className="mb-6 text-left">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center">
-              {(() => {
-                const IconComponent = getGoalIcon(goal.category);
-                return <IconComponent className="w-7 h-7 text-primary" />;
-              })()}
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center">
+                {(() => {
+                  const IconComponent = getGoalIcon(goal.category);
+                  return <IconComponent className="w-7 h-7 text-primary" />;
+                })()}
+              </div>
+              <div>
+                <SheetTitle className="text-xl font-bold">{goal.title}</SheetTitle>
+                <SheetDescription className="text-sm capitalize">
+                  {goal.category}
+                </SheetDescription>
+              </div>
             </div>
-            <div>
-              <SheetTitle className="text-xl font-bold">{goal.title}</SheetTitle>
-              <SheetDescription className="text-sm capitalize">
-                {goal.category}
-              </SheetDescription>
-            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="icon" variant="ghost" className="text-muted-foreground" data-testid="button-delete-goal">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Doel verwijderen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Weet je zeker dat je "{goal.title}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-delete">Annuleren</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} data-testid="button-confirm-delete">
+                    Verwijderen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
           
           {goal.type === "boolean" ? (

@@ -5,6 +5,7 @@ import { GoalDetailSheet } from "@/components/GoalDetailSheet";
 import { PixelHouse } from "@/components/PixelHouse";
 import { Confetti, useConfetti } from "@/components/Confetti";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CreateGoalDialog } from "@/components/CreateGoalDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Goal, RoadmapStep, RoomItem } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
@@ -322,7 +323,10 @@ export default function Dashboard() {
               {info.label}
             </h1>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <CreateGoalDialog category={category} />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       

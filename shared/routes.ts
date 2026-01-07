@@ -31,12 +31,29 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    create: {
+      method: 'POST' as const,
+      path: '/api/goals',
+      input: insertGoalSchema,
+      responses: {
+        201: z.custom<typeof goals.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
     update: {
       method: 'PATCH' as const,
       path: '/api/goals/:id',
       input: insertGoalSchema.partial(),
       responses: {
         200: z.custom<typeof goals.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/goals/:id',
+      responses: {
+        204: z.void(),
         404: errorSchemas.notFound,
       },
     },
