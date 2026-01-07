@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import { InsertGoal, InsertLog, InsertUserProfile, Activity } from "@shared/schema";
+import { InsertGoal, InsertLog, InsertUserProfile, Activity, InsertGoalNote, InsertMilestonePhoto, GoalNote, MilestonePhoto } from "@shared/schema";
 
 export function useGoals() {
   return useQuery({
@@ -127,6 +127,98 @@ export function useActivities() {
       const res = await fetch(api.activity.list.path);
       if (!res.ok) throw new Error("Failed to fetch activities");
       return api.activity.list.responses[200].parse(await res.json());
+    },
+  });
+}
+
+export function useGoalNotes(goalId: number) {
+  return useQuery<GoalNote[]>({
+    queryKey: [api.notes.list.path, goalId],
+    queryFn: async () => {
+      const url = buildUrl(api.notes.list.path, { goalId });
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch notes");
+      return res.json();
+    },
+    enabled: !!goalId,
+  });
+}
+
+export function useCreateGoalNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: InsertGoalNote) => {
+      const url = buildUrl(api.notes.create.path, { goalId: data.goalId });
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to create note");
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.notes.list.path, variables.goalId] });
+    },
+  });
+}
+
+export function useDeleteGoalNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, goalId }: { id: number; goalId: number }) => {
+      const url = buildUrl(api.notes.delete.path, { id });
+      const res = await fetch(url, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete note");
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.notes.list.path, variables.goalId] });
+    },
+  });
+}
+
+export function useMilestonePhotos(goalId: number) {
+  return useQuery<MilestonePhoto[]>({
+    queryKey: [api.photos.list.path, goalId],
+    queryFn: async () => {
+      const url = buildUrl(api.photos.list.path, { goalId });
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch photos");
+      return res.json();
+    },
+    enabled: !!goalId,
+  });
+}
+
+export function useCreateMilestonePhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: InsertMilestonePhoto) => {
+      const url = buildUrl(api.photos.create.path, { goalId: data.goalId });
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to create photo");
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.photos.list.path, variables.goalId] });
+    },
+  });
+}
+
+export function useDeleteMilestonePhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, goalId }: { id: number; goalId: number }) => {
+      const url = buildUrl(api.photos.delete.path, { id });
+      const res = await fetch(url, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete photo");
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.photos.list.path, variables.goalId] });
     },
   });
 }

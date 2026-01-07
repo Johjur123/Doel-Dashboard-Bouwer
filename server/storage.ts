@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { goals, logs, userProfiles, activities, type Goal, type InsertGoal, type Log, type InsertLog, type UserProfile, type InsertUserProfile, type Activity, type InsertActivity } from "@shared/schema";
+import { goals, logs, userProfiles, activities, goalNotes, milestonePhotos, type Goal, type InsertGoal, type Log, type InsertLog, type UserProfile, type InsertUserProfile, type Activity, type InsertActivity, type GoalNote, type InsertGoalNote, type MilestonePhoto, type InsertMilestonePhoto } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -14,6 +14,12 @@ export interface IStorage {
   updateUser(id: number, user: Partial<InsertUserProfile>): Promise<UserProfile | undefined>;
   createActivity(activity: InsertActivity): Promise<Activity>;
   getActivities(limit?: number): Promise<Activity[]>;
+  createGoalNote(note: InsertGoalNote): Promise<GoalNote>;
+  getGoalNotes(goalId: number): Promise<GoalNote[]>;
+  deleteGoalNote(id: number): Promise<void>;
+  createMilestonePhoto(photo: InsertMilestonePhoto): Promise<MilestonePhoto>;
+  getMilestonePhotos(goalId: number): Promise<MilestonePhoto[]>;
+  deleteMilestonePhoto(id: number): Promise<void>;
   seed(): Promise<void>;
 }
 
@@ -66,6 +72,32 @@ export class DatabaseStorage implements IStorage {
 
   async getActivities(limit: number = 20): Promise<Activity[]> {
     return await db.select().from(activities).orderBy(desc(activities.createdAt)).limit(limit);
+  }
+
+  async createGoalNote(note: InsertGoalNote): Promise<GoalNote> {
+    const [newNote] = await db.insert(goalNotes).values(note).returning();
+    return newNote;
+  }
+
+  async getGoalNotes(goalId: number): Promise<GoalNote[]> {
+    return await db.select().from(goalNotes).where(eq(goalNotes.goalId, goalId)).orderBy(desc(goalNotes.createdAt));
+  }
+
+  async deleteGoalNote(id: number): Promise<void> {
+    await db.delete(goalNotes).where(eq(goalNotes.id, id));
+  }
+
+  async createMilestonePhoto(photo: InsertMilestonePhoto): Promise<MilestonePhoto> {
+    const [newPhoto] = await db.insert(milestonePhotos).values(photo).returning();
+    return newPhoto;
+  }
+
+  async getMilestonePhotos(goalId: number): Promise<MilestonePhoto[]> {
+    return await db.select().from(milestonePhotos).where(eq(milestonePhotos.goalId, goalId)).orderBy(desc(milestonePhotos.createdAt));
+  }
+
+  async deleteMilestonePhoto(id: number): Promise<void> {
+    await db.delete(milestonePhotos).where(eq(milestonePhotos.id, id));
   }
 
   async seed(): Promise<void> {

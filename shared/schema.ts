@@ -42,6 +42,23 @@ export const activities = pgTable("activity_feed", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const goalNotes = pgTable("goal_notes", {
+  id: serial("id").primaryKey(),
+  goalId: integer("goal_id").notNull(),
+  userId: integer("user_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const milestonePhotos = pgTable("milestone_photos", {
+  id: serial("id").primaryKey(),
+  goalId: integer("goal_id").notNull(),
+  userId: integer("user_id").notNull(),
+  imageUrl: text("image_url").notNull(),
+  caption: text("caption"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export type RoomItem = {
   title: string;
   completed: boolean;
@@ -71,13 +88,19 @@ export const insertGoalSchema = createInsertSchema(goals).omit({ id: true, creat
 export const insertLogSchema = createInsertSchema(logs).omit({ id: true, createdAt: true });
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({ id: true, createdAt: true });
 export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true });
+export const insertGoalNoteSchema = createInsertSchema(goalNotes).omit({ id: true, createdAt: true });
+export const insertMilestonePhotoSchema = createInsertSchema(milestonePhotos).omit({ id: true, createdAt: true });
 
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type InsertLog = z.infer<typeof insertLogSchema>;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type InsertGoalNote = z.infer<typeof insertGoalNoteSchema>;
+export type InsertMilestonePhoto = z.infer<typeof insertMilestonePhotoSchema>;
 
 export type Goal = typeof goals.$inferSelect;
 export type Log = typeof logs.$inferSelect;
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type Activity = typeof activities.$inferSelect;
+export type GoalNote = typeof goalNotes.$inferSelect;
+export type MilestonePhoto = typeof milestonePhotos.$inferSelect;

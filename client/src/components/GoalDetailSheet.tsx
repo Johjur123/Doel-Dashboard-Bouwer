@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Goal, RoadmapStep, RoomItem } from "@shared/schema";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useLogs, useCreateLog, useUpdateGoal } from "@/hooks/use-goals";
+import { GoalNotes } from "@/components/GoalNotes";
 import { format, differenceInDays } from "date-fns";
 import { nl } from "date-fns/locale";
 import { Loader2, Plus, Minus, Check, Calendar, MessageSquare, Trash2, X } from "lucide-react";
+import { getGoalIcon } from "@/lib/goal-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -127,7 +129,7 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
     ? Math.min((goal.currentValue || 0) / goal.targetValue * 100, 100) 
     : 0;
 
-  const relationshipStart = new Date(2020, 9, 2);
+  const relationshipStart = new Date(2025, 9, 2);
   const isAutoCalculated = goal.category === "fun" && goal.title.toLowerCase().includes("dagen samen");
   const displayValue = isAutoCalculated 
     ? differenceInDays(new Date(), relationshipStart)
@@ -138,8 +140,11 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
       <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-background">
         <SheetHeader className="mb-6 text-left">
           <div className="flex items-center gap-4 mb-3">
-            <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center text-3xl">
-              {goal.icon || "🎯"}
+            <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center">
+              {(() => {
+                const IconComponent = getGoalIcon(goal.category);
+                return <IconComponent className="w-7 h-7 text-primary" />;
+              })()}
             </div>
             <div>
               <SheetTitle className="text-xl font-bold">{goal.title}</SheetTitle>
@@ -164,7 +169,7 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
           ) : isAutoCalculated ? (
             <div className="bg-gradient-to-r from-rose-500/10 to-pink-500/10 rounded-xl p-4 text-center">
               <span className="text-4xl font-bold text-rose-500">{displayValue.toLocaleString()}</span>
-              <p className="text-sm text-muted-foreground mt-1">{goal.unit} sinds 02-10-2020</p>
+              <p className="text-sm text-muted-foreground mt-1">{goal.unit} sinds 02-10-2025</p>
             </div>
           ) : goal.targetValue ? (
             <div className="bg-secondary/50 rounded-xl p-3">
@@ -496,6 +501,10 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
                 </div>
               </div>
             )}
+
+            <div className="bg-card rounded-xl border border-border p-4">
+              <GoalNotes goalId={goal.id} />
+            </div>
           </div>
         )}
       </SheetContent>

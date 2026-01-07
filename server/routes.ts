@@ -143,5 +143,57 @@ export async function registerRoutes(
     });
   });
 
+  app.get(api.notes.list.path, async (req, res) => {
+    const notes = await storage.getGoalNotes(Number(req.params.goalId));
+    res.json(notes);
+  });
+
+  app.post(api.notes.create.path, async (req, res) => {
+    try {
+      const input = api.notes.create.input.parse({
+        ...req.body,
+        goalId: Number(req.params.goalId),
+      });
+      const note = await storage.createGoalNote(input);
+      res.status(201).json(note);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.notes.delete.path, async (req, res) => {
+    await storage.deleteGoalNote(Number(req.params.id));
+    res.status(204).send();
+  });
+
+  app.get(api.photos.list.path, async (req, res) => {
+    const photos = await storage.getMilestonePhotos(Number(req.params.goalId));
+    res.json(photos);
+  });
+
+  app.post(api.photos.create.path, async (req, res) => {
+    try {
+      const input = api.photos.create.input.parse({
+        ...req.body,
+        goalId: Number(req.params.goalId),
+      });
+      const photo = await storage.createMilestonePhoto(input);
+      res.status(201).json(photo);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.photos.delete.path, async (req, res) => {
+    await storage.deleteMilestonePhoto(Number(req.params.id));
+    res.status(204).send();
+  });
+
   return httpServer;
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertGoalSchema, insertLogSchema, insertUserProfileSchema, goals, logs, userProfiles, activities } from './schema';
+import { insertGoalSchema, insertLogSchema, insertUserProfileSchema, insertGoalNoteSchema, insertMilestonePhotoSchema, goals, logs, userProfiles, activities, goalNotes, milestonePhotos } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -111,6 +111,58 @@ export const api = {
           totalItems: z.number(),
           completedItems: z.number(),
         }),
+      },
+    },
+  },
+  notes: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/goals/:goalId/notes',
+      responses: {
+        200: z.array(z.custom<typeof goalNotes.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/goals/:goalId/notes',
+      input: insertGoalNoteSchema,
+      responses: {
+        201: z.custom<typeof goalNotes.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/notes/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  photos: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/goals/:goalId/photos',
+      responses: {
+        200: z.array(z.custom<typeof milestonePhotos.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/goals/:goalId/photos',
+      input: insertMilestonePhotoSchema,
+      responses: {
+        201: z.custom<typeof milestonePhotos.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/photos/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
       },
     },
   },

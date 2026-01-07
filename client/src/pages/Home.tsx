@@ -3,6 +3,8 @@ import { PixelHouse } from "@/components/PixelHouse";
 import { CouplesProfile } from "@/components/CouplesProfile";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { SavingsForecast } from "@/components/SavingsForecast";
+import { MonthlyReport } from "@/components/MonthlyReport";
+import { Reminders } from "@/components/Reminders";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
@@ -15,7 +17,9 @@ import {
   Trophy, 
   Sparkles,
   ChevronRight,
-  Activity
+  Activity,
+  BarChart3,
+  Bell
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
@@ -178,6 +182,22 @@ export default function Home() {
               <h3 className="font-semibold text-sm">Recente Activiteit</h3>
             </div>
             <ActivityFeed />
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 className="w-4 h-4 text-purple-500" />
+              <h3 className="font-semibold text-sm">Maandoverzicht</h3>
+            </div>
+            <MonthlyReport />
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Bell className="w-4 h-4 text-amber-500" />
+              <h3 className="font-semibold text-sm">Herinneringen</h3>
+            </div>
+            <Reminders />
           </Card>
         </div>
 
