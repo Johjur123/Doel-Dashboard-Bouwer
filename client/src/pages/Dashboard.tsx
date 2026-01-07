@@ -448,101 +448,156 @@ function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, on
 function LifestyleCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index: number; onClick: () => void; onQuickLog: (e: React.MouseEvent, goal: Goal, value: number) => void }) {
   const percentage = goal.targetValue ? Math.min((goal.currentValue || 0) / goal.targetValue * 100, 100) : 0;
   const isLimit = goal.type === 'counter' && goal.targetValue;
+  const isComplete = percentage >= 100;
   
-  let progressColor = "bg-primary";
+  let progressGradient = "from-primary to-primary/80";
+  let statusColor = "text-primary";
   if (isLimit) {
-    if (percentage > 90) progressColor = "bg-red-500";
-    else if (percentage > 70) progressColor = "bg-orange-400";
-    else progressColor = "bg-emerald-500";
+    if (percentage > 90) {
+      progressGradient = "from-red-500 to-red-400";
+      statusColor = "text-red-500";
+    } else if (percentage > 70) {
+      progressGradient = "from-amber-500 to-orange-400";
+      statusColor = "text-amber-500";
+    } else {
+      progressGradient = "from-emerald-500 to-teal-400";
+      statusColor = "text-emerald-500";
+    }
   }
 
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+      transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 30 }}
       onClick={onClick}
-      className="bg-card rounded-2xl border border-border p-4 cursor-pointer hover:border-primary/30 transition-colors"
+      className="glass-card p-4 cursor-pointer group"
+      whileHover={{ y: -2 }}
       data-testid={`card-goal-${goal.id}`}
     >
       <div className="flex items-center gap-3 mb-3">
-        <span className="text-2xl">{goal.icon || "✨"}</span>
-        <span className="font-medium text-sm flex-1 truncate">{goal.title}</span>
-      </div>
-      
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xl font-bold tabular-nums">
-          {goal.currentValue}
-          <span className="text-sm font-normal text-muted-foreground">/{goal.targetValue} {goal.unit}</span>
-        </span>
-        <div className="flex gap-1">
-          <button 
-            onClick={(e) => onQuickLog(e, goal, -1)}
-            className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center hover:bg-destructive/20 transition-colors"
-            data-testid={`button-minus-${goal.id}`}
-          >
-            <Minus className="w-3 h-3" />
-          </button>
-          <button 
-            onClick={(e) => onQuickLog(e, goal, 1)}
-            className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors"
-            data-testid={`button-plus-${goal.id}`}
-          >
-            <Plus className="w-3 h-3" />
-          </button>
+        <motion.div 
+          className="w-10 h-10 rounded-xl bg-secondary/80 flex items-center justify-center text-xl"
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          transition={{ type: "spring", stiffness: 400 }}
+        >
+          {goal.icon || "✨"}
+        </motion.div>
+        <div className="flex-1 min-w-0">
+          <span className="font-semibold text-sm block truncate">{goal.title}</span>
+          <span className="text-xs text-muted-foreground">{goal.unit}</span>
         </div>
       </div>
       
-      <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-baseline gap-1">
+          <span className={cn("text-2xl font-bold tabular-nums", statusColor)}>
+            {goal.currentValue}
+          </span>
+          <span className="text-sm text-muted-foreground">/ {goal.targetValue}</span>
+        </div>
+        <div className="flex gap-1.5">
+          <motion.button 
+            onClick={(e) => onQuickLog(e, goal, -1)}
+            className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center transition-colors"
+            whileHover={{ scale: 1.1, backgroundColor: "hsl(var(--destructive) / 0.2)" }}
+            whileTap={{ scale: 0.95 }}
+            data-testid={`button-minus-${goal.id}`}
+          >
+            <Minus className="w-3.5 h-3.5" />
+          </motion.button>
+          <motion.button 
+            onClick={(e) => onQuickLog(e, goal, 1)}
+            className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            data-testid={`button-plus-${goal.id}`}
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </motion.button>
+        </div>
+      </div>
+      
+      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
         <motion.div 
-          className={cn("h-full rounded-full", progressColor)} 
+          className={cn("h-full rounded-full bg-gradient-to-r", progressGradient)} 
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
         />
       </div>
+      
+      {isComplete && !isLimit && (
+        <motion.div 
+          className="mt-2 text-xs text-center text-emerald-600 dark:text-emerald-400 font-medium"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          Doel bereikt!
+        </motion.div>
+      )}
     </motion.div>
   );
 }
 
 function SavingsCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index: number; onClick: () => void; onQuickLog: (e: React.MouseEvent, goal: Goal, value: number) => void }) {
   const percentage = goal.targetValue ? Math.min((goal.currentValue || 0) / goal.targetValue * 100, 100) : 0;
+  const remaining = Math.max(0, (goal.targetValue || 0) - (goal.currentValue || 0));
+  const isComplete = remaining === 0;
 
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+      transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 30 }}
       onClick={onClick}
-      className="bg-card rounded-2xl border border-border p-5 cursor-pointer hover:border-emerald-500/30 transition-colors"
+      className={cn(
+        "glass-card p-5 cursor-pointer group",
+        isComplete && "ring-2 ring-emerald-500/30"
+      )}
+      whileHover={{ y: -2 }}
       data-testid={`card-goal-${goal.id}`}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{goal.icon || "💰"}</span>
-          <span className="font-semibold">{goal.title}</span>
+          <motion.div 
+            className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-2xl"
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            {goal.icon || "✨"}
+          </motion.div>
+          <div>
+            <span className="font-semibold block">{goal.title}</span>
+            {isComplete && (
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Doel bereikt!</span>
+            )}
+          </div>
         </div>
-        <button 
+        <motion.button 
           onClick={(e) => onQuickLog(e, goal, 50)}
-          className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-colors"
+          className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          style={{ boxShadow: "0 4px 14px -3px rgba(16, 185, 129, 0.4)" }}
           data-testid={`button-add-savings-${goal.id}`}
         >
-          <Plus className="w-4 h-4" />
-        </button>
+          <Plus className="w-5 h-5" />
+        </motion.button>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex justify-between items-baseline">
-          <span className="text-2xl font-bold">€{(goal.currentValue || 0).toLocaleString()}</span>
+          <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">€{(goal.currentValue || 0).toLocaleString()}</span>
           <span className="text-sm text-muted-foreground">van €{(goal.targetValue || 0).toLocaleString()}</span>
         </div>
         
-        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+        <div className="h-2.5 w-full bg-secondary rounded-full overflow-hidden">
           <motion.div 
-            className="h-full rounded-full bg-emerald-500"
+            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
             initial={{ width: 0 }}
             animate={{ width: `${percentage}%` }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           />
         </div>
         
@@ -600,40 +655,49 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-card rounded-2xl border border-border overflow-hidden"
+      transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 30 }}
+      className="glass-card overflow-hidden"
       data-testid={`card-goal-${goal.id}`}
     >
-      <div className="p-4 cursor-pointer" onClick={onClick}>
-        <div className="flex items-center justify-between mb-3">
+      <div className="p-5 cursor-pointer" onClick={onClick}>
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">{goal.icon || "🚀"}</span>
+            <motion.div 
+              className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-xl"
+              whileHover={{ scale: 1.1, rotate: 5 }}
+            >
+              {goal.icon || "✨"}
+            </motion.div>
             <div>
               <h3 className="font-semibold">{goal.title}</h3>
-              <p className="text-xs text-muted-foreground">{completedSteps}/{steps.length} stappen</p>
+              <p className="text-xs text-muted-foreground">{completedSteps}/{steps.length} stappen voltooid</p>
             </div>
           </div>
-          <span className="text-lg font-bold text-blue-500">{Math.round(progress)}%</span>
+          <div className="text-right">
+            <span className="text-2xl font-bold text-blue-500">{Math.round(progress)}%</span>
+          </div>
         </div>
         
-        <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
           <motion.div 
-            className="h-full rounded-full bg-blue-500"
+            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-400"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
           />
         </div>
       </div>
 
-      <div className="border-t border-border">
-        <button
+      <div className="border-t border-border/50">
+        <motion.button
           onClick={(e) => onToggleExpand(e, goal.id)}
-          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+          className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm text-muted-foreground transition-colors"
+          whileHover={{ backgroundColor: "hsl(var(--secondary) / 0.5)" }}
           data-testid={`button-expand-${goal.id}`}
         >
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          <span>{expanded ? "Verberg" : "Toon stappen"}</span>
-        </button>
+          <span>{expanded ? "Verberg stappen" : "Toon stappen"}</span>
+        </motion.button>
       </div>
 
       <AnimatePresence>
@@ -846,38 +910,43 @@ function CasaCard({ goal, index, expanded, onClick, onToggleRoomItem, onToggleEx
       layout
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.05 }}
+      transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 25 }}
       className={cn(
-        "bg-card rounded-2xl border overflow-hidden cursor-pointer",
-        isComplete ? "border-emerald-500/50" : "border-border hover:border-orange-500/30"
+        "glass-card overflow-hidden cursor-pointer",
+        isComplete && "ring-2 ring-emerald-500/30"
       )}
+      whileHover={{ scale: 1.02 }}
       data-testid={`card-goal-${goal.id}`}
     >
-      <div className="p-4" onClick={(e) => onToggleExpand(e, goal.id)}>
+      <div className="p-5" onClick={(e) => onToggleExpand(e, goal.id)}>
         <div className="flex flex-col items-center text-center">
-          <motion.span 
-            className="text-3xl mb-2"
-            animate={isComplete ? { scale: [1, 1.1, 1] } : {}}
+          <motion.div 
+            className={cn(
+              "w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-3",
+              isComplete ? "bg-emerald-500/10" : "bg-orange-500/10"
+            )}
+            animate={isComplete ? { scale: [1, 1.08, 1] } : {}}
             transition={{ repeat: isComplete ? Infinity : 0, duration: 2 }}
           >
-            {goal.icon || "🏠"}
-          </motion.span>
-          <h3 className="font-semibold text-sm mb-1">{goal.title}</h3>
+            {goal.icon || "✨"}
+          </motion.div>
+          <h3 className="font-semibold mb-2">{goal.title}</h3>
           <span className={cn(
-            "text-xs font-medium px-2 py-0.5 rounded-full",
+            "text-xs font-semibold px-3 py-1 rounded-full",
             isComplete 
-              ? "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400" 
-              : "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-400"
+              ? "bg-gradient-to-r from-emerald-100 to-teal-100 dark:from-emerald-900/50 dark:to-teal-900/50 text-emerald-700 dark:text-emerald-400" 
+              : "bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900/50 dark:to-amber-900/50 text-orange-700 dark:text-orange-400"
           )}>
-            {completedCount}/{items.length}
+            {completedCount}/{items.length} items
           </span>
         </div>
         
-        <div className="mt-3 h-1 w-full bg-secondary rounded-full overflow-hidden">
+        <div className="mt-4 h-1.5 w-full bg-secondary rounded-full overflow-hidden">
           <motion.div 
-            className={cn("h-full rounded-full", isComplete ? "bg-emerald-500" : "bg-orange-500")}
+            className={cn("h-full rounded-full bg-gradient-to-r", isComplete ? "from-emerald-500 to-teal-400" : "from-orange-500 to-amber-400")}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
           />
         </div>
       </div>
@@ -986,42 +1055,50 @@ function MilestoneCard({ goal, index, onClick, onToggle }: { goal: Goal; index: 
     <motion.div 
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.08 }}
+      transition={{ delay: index * 0.08, type: "spring", stiffness: 300, damping: 30 }}
       onClick={onClick}
       className={cn(
-        "bg-card rounded-2xl border p-4 cursor-pointer flex items-center gap-4",
-        isCompleted ? "border-amber-500/50 bg-amber-50/50 dark:bg-amber-900/10" : "border-border hover:border-primary/30"
+        "glass-card p-4 cursor-pointer flex items-center gap-4",
+        isCompleted && "ring-2 ring-amber-500/30"
       )}
+      whileHover={{ x: 4 }}
       data-testid={`card-goal-${goal.id}`}
     >
       <motion.button
         onClick={(e) => onToggle(e, goal)}
         className={cn(
-          "w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0 transition-all",
+          "w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 transition-all",
           isCompleted 
-            ? "bg-gradient-to-br from-amber-400 to-yellow-500 shadow-md" 
-            : "bg-secondary grayscale hover:grayscale-0"
+            ? "bg-gradient-to-br from-amber-400 to-yellow-500 shadow-lg" 
+            : "bg-secondary/80 grayscale hover:grayscale-0"
         )}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: 1.1, rotate: isCompleted ? 5 : 0 }}
+        whileTap={{ scale: 0.9 }}
+        style={isCompleted ? { boxShadow: "0 8px 20px -4px rgba(245, 158, 11, 0.4)" } : {}}
         data-testid={`button-toggle-milestone-${goal.id}`}
       >
-        {goal.icon || "🏆"}
+        {goal.icon || "✨"}
       </motion.button>
       
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h3 className="font-semibold truncate">{goal.title}</h3>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="font-semibold">{goal.title}</h3>
           {isCompleted && (
-            <span className="text-xs bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-medium shrink-0">
-              Done
-            </span>
+            <motion.span 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="text-xs bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/50 dark:to-yellow-900/50 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-full font-semibold shrink-0"
+            >
+              Behaald
+            </motion.span>
           )}
         </div>
         {goal.unit && (
-          <p className="text-sm text-muted-foreground truncate">{goal.unit}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{goal.unit}</p>
         )}
       </div>
+      
+      <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
     </motion.div>
   );
 }
@@ -1037,28 +1114,29 @@ function FunCard({ goal, index, onClick }: { goal: Goal; index: number; onClick:
     <motion.div 
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.05, type: "spring" }}
+      transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 25 }}
       onClick={onClick}
-      className="bg-card rounded-2xl border border-border p-4 flex flex-col items-center text-center cursor-pointer hover:border-purple-500/30 transition-colors group"
+      className="glass-card p-5 flex flex-col items-center text-center cursor-pointer group"
+      whileHover={{ scale: 1.02, y: -2 }}
       data-testid={`card-goal-${goal.id}`}
     >
-      <motion.span 
-        className="text-3xl mb-2"
-        animate={{ y: [0, -3, 0] }}
-        transition={{ repeat: Infinity, duration: 3, delay: index * 0.3 }}
+      <motion.div 
+        className="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center mb-3"
+        animate={{ y: [0, -4, 0] }}
+        transition={{ repeat: Infinity, duration: 3, delay: index * 0.3, ease: "easeInOut" }}
       >
-        {goal.icon || "🎈"}
-      </motion.span>
+        <span className="text-2xl">{goal.icon || "✨"}</span>
+      </motion.div>
       <motion.span 
-        className="text-3xl font-bold text-purple-600 dark:text-purple-400 tabular-nums"
+        className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent tabular-nums"
         key={displayValue}
         initial={{ scale: 1.2 }}
         animate={{ scale: 1 }}
       >
         {displayValue.toLocaleString()}
       </motion.span>
-      <span className="text-xs text-muted-foreground mt-1">{goal.unit}</span>
-      <span className="text-xs font-medium text-muted-foreground mt-2 truncate w-full">{goal.title}</span>
+      <span className="text-sm text-muted-foreground mt-1">{goal.unit}</span>
+      <span className="text-sm font-medium mt-3 truncate w-full">{goal.title}</span>
     </motion.div>
   );
 }
