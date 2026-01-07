@@ -1,142 +1,106 @@
-import { useGoals, useAllLogs } from "@/hooks/use-goals";
+import { useGoals } from "@/hooks/use-goals";
 import { motion } from "framer-motion";
-import { TrendingUp, Calendar, Target } from "lucide-react";
-import { differenceInDays, addMonths, format } from "date-fns";
-import { nl } from "date-fns/locale";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { Plane, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function SavingsForecast() {
   const { data: goals } = useGoals();
-  const { data: logs } = useAllLogs();
 
-  const savingsGoals = goals?.filter(g => g.category === "savings") || [];
-  const totalSaved = savingsGoals.reduce((sum, g) => sum + (g.currentValue || 0), 0);
-  const totalTarget = savingsGoals.reduce((sum, g) => sum + (g.targetValue || 0), 0);
-
-  const savingsLogs = logs?.filter(l => 
-    savingsGoals.some(g => g.id === l.goalId)
-  ).sort((a, b) => 
-    new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+  const travelGoals = goals?.filter(g => 
+    g.category === "savings" && 
+    (g.title.toLowerCase().includes("tokio") || 
+     g.title.toLowerCase().includes("tokyo") ||
+     g.title.toLowerCase().includes("canada") ||
+     g.title.toLowerCase().includes("new york"))
   ) || [];
 
-  const monthlyAverage = savingsLogs.length > 0 
-    ? savingsLogs.reduce((sum, l) => sum + (l.value > 0 ? l.value : 0), 0) / 
-      Math.max(1, differenceInDays(new Date(), new Date(savingsLogs[0]?.createdAt || new Date())) / 30)
-    : 500;
-
-  const remaining = totalTarget - totalSaved;
-  const monthsToGoal = remaining > 0 && monthlyAverage > 0 
-    ? Math.ceil(remaining / monthlyAverage) 
-    : 0;
-  const estimatedDate = addMonths(new Date(), monthsToGoal);
-
-  const chartData = [];
-  let runningTotal = totalSaved;
-  for (let i = 0; i <= Math.min(monthsToGoal + 2, 24); i++) {
-    const date = addMonths(new Date(), i);
-    chartData.push({
-      month: format(date, "MMM yy", { locale: nl }),
-      value: Math.min(runningTotal, totalTarget),
-      target: totalTarget,
-    });
-    runningTotal += monthlyAverage;
+  if (travelGoals.length === 0) {
+    return (
+      <div className="text-center py-6 text-muted-foreground text-sm">
+        Geen reisdoelen gevonden
+      </div>
+    );
   }
 
-  const percentage = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
-
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        <motion.div 
-          className="bg-emerald-500/10 rounded-xl p-3 text-center"
-          whileHover={{ scale: 1.02 }}
-        >
-          <TrendingUp className="w-5 h-5 mx-auto text-emerald-500 mb-1" />
-          <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-            €{Math.round(monthlyAverage).toLocaleString()}
-          </div>
-          <div className="text-xs text-muted-foreground">per maand</div>
-        </motion.div>
-        
-        <motion.div 
-          className="bg-blue-500/10 rounded-xl p-3 text-center"
-          whileHover={{ scale: 1.02 }}
-        >
-          <Calendar className="w-5 h-5 mx-auto text-blue-500 mb-1" />
-          <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-            {monthsToGoal > 0 ? `${monthsToGoal} mnd` : "Klaar!"}
-          </div>
-          <div className="text-xs text-muted-foreground">te gaan</div>
-        </motion.div>
-        
-        <motion.div 
-          className="bg-purple-500/10 rounded-xl p-3 text-center"
-          whileHover={{ scale: 1.02 }}
-        >
-          <Target className="w-5 h-5 mx-auto text-purple-500 mb-1" />
-          <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-            {monthsToGoal > 0 ? format(estimatedDate, "MMM yy", { locale: nl }) : "Nu"}
-          </div>
-          <div className="text-xs text-muted-foreground">geschat doel</div>
-        </motion.div>
-      </div>
+    <div className="space-y-3">
+      {travelGoals.map((goal, idx) => {
+        const saved = goal.currentValue || 0;
+        const target = goal.targetValue || 0;
+        const remaining = Math.max(0, target - saved);
+        const percentage = target > 0 ? Math.round((saved / target) * 100) : 0;
+        const isComplete = remaining === 0;
 
-      {chartData.length > 2 && (
-        <div className="h-32 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-              <defs>
-                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis 
-                dataKey="month" 
-                tick={{ fontSize: 10 }} 
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis hide domain={[0, 'dataMax']} />
-              <Tooltip 
-                formatter={(value: number) => [`€${value.toLocaleString()}`, 'Gespaard']}
-                labelStyle={{ fontSize: 12 }}
-                contentStyle={{ 
-                  background: 'hsl(var(--card))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  fontSize: 12
-                }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#10b981" 
-                strokeWidth={2}
-                fill="url(#colorValue)" 
-              />
-              <Line 
-                type="monotone" 
-                dataKey="target" 
-                stroke="#94a3b8" 
-                strokeDasharray="5 5" 
-                strokeWidth={1}
-                dot={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+        return (
+          <motion.div
+            key={goal.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+            className={cn(
+              "rounded-xl p-4 border",
+              isComplete 
+                ? "bg-emerald-500/10 border-emerald-500/20" 
+                : "bg-card border-border"
+            )}
+            data-testid={`savings-goal-${goal.id}`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center",
+                  goal.title.toLowerCase().includes("tokio") || goal.title.toLowerCase().includes("tokyo")
+                    ? "bg-pink-500/10 text-pink-500"
+                    : "bg-red-500/10 text-red-500"
+                )}>
+                  {goal.title.toLowerCase().includes("tokio") || goal.title.toLowerCase().includes("tokyo") 
+                    ? <Plane className="w-4 h-4" />
+                    : <MapPin className="w-4 h-4" />
+                  }
+                </div>
+                <span className="font-medium text-sm">{goal.title}</span>
+              </div>
+              <span className={cn(
+                "text-xs font-medium px-2 py-0.5 rounded-full",
+                isComplete 
+                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                  : "bg-muted text-muted-foreground"
+              )}>
+                {percentage}%
+              </span>
+            </div>
 
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">
-          €{totalSaved.toLocaleString()} van €{totalTarget.toLocaleString()}
-        </span>
-        <span className="font-medium text-emerald-600 dark:text-emerald-400">
-          {percentage}%
-        </span>
-      </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden mb-3">
+              <motion.div
+                className={cn(
+                  "h-full rounded-full",
+                  goal.title.toLowerCase().includes("tokio") || goal.title.toLowerCase().includes("tokyo")
+                    ? "bg-gradient-to-r from-pink-500 to-rose-400"
+                    : "bg-gradient-to-r from-red-500 to-orange-400"
+                )}
+                initial={{ width: 0 }}
+                animate={{ width: `${percentage}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                Gespaard: <span className="text-foreground font-medium">€{saved.toLocaleString()}</span>
+              </span>
+              {isComplete ? (
+                <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                  Doel bereikt!
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  Mist nog: <span className="text-foreground font-bold">€{remaining.toLocaleString()}</span>
+                </span>
+              )}
+            </div>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
