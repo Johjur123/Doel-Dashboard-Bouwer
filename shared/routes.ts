@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertGoalSchema, insertLogSchema, insertUserProfileSchema, insertGoalNoteSchema, insertMilestonePhotoSchema, goals, logs, userProfiles, activities, goalNotes, milestonePhotos } from './schema';
+import { insertGoalSchema, insertLogSchema, insertUserProfileSchema, insertGoalNoteSchema, insertMilestonePhotoSchema, goals, logs, userProfiles, activities, goalNotes, milestonePhotos, periodHistory } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -163,6 +163,15 @@ export const api = {
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
+      },
+    },
+  },
+  periodHistory: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/goals/:goalId/history',
+      responses: {
+        200: z.array(z.custom<typeof periodHistory.$inferSelect>()),
       },
     },
   },

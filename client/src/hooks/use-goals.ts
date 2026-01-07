@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import { InsertGoal, InsertLog, InsertUserProfile, Activity, InsertGoalNote, InsertMilestonePhoto, GoalNote, MilestonePhoto } from "@shared/schema";
+import { InsertGoal, InsertLog, InsertUserProfile, Activity, InsertGoalNote, InsertMilestonePhoto, GoalNote, MilestonePhoto, PeriodHistory } from "@shared/schema";
 
 export function useGoals() {
   return useQuery({
@@ -220,5 +220,18 @@ export function useDeleteMilestonePhoto() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [api.photos.list.path, variables.goalId] });
     },
+  });
+}
+
+export function usePeriodHistory(goalId: number) {
+  return useQuery<PeriodHistory[]>({
+    queryKey: [api.periodHistory.list.path, goalId],
+    queryFn: async () => {
+      const url = buildUrl(api.periodHistory.list.path, { goalId });
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch period history");
+      return res.json();
+    },
+    enabled: !!goalId,
   });
 }

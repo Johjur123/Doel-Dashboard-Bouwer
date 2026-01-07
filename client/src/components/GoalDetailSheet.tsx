@@ -3,9 +3,11 @@ import { Goal, RoadmapStep, RoomItem } from "@shared/schema";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useLogs, useCreateLog, useUpdateGoal } from "@/hooks/use-goals";
 import { GoalNotes } from "@/components/GoalNotes";
-import { format, differenceInDays } from "date-fns";
+import { PeriodHistory } from "@/components/PeriodHistory";
+import { Badge } from "@/components/ui/badge";
+import { format, differenceInDays, addDays, addMonths } from "date-fns";
 import { nl } from "date-fns/locale";
-import { Loader2, Plus, Minus, Check, Calendar, MessageSquare, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Minus, Check, Calendar, MessageSquare, Trash2, X, Clock, CalendarDays } from "lucide-react";
 import { getGoalIcon } from "@/lib/goal-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -459,6 +461,41 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {goal.resetPeriod && goal.resetPeriod !== "none" && (
+              <div className="bg-card rounded-xl border border-border p-4 space-y-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {goal.resetPeriod === "weekly" ? "Wekelijks" : "Maandelijks"} doel
+                  </span>
+                  {goal.periodStartDate && (
+                    <Badge variant="outline" className="text-xs">
+                      Start: {format(new Date(goal.periodStartDate), "d MMM", { locale: nl })}
+                    </Badge>
+                  )}
+                  {goal.periodStartDate && (
+                    <Badge variant="secondary" className="text-xs">
+                      Reset: {format(
+                        goal.resetPeriod === "weekly" 
+                          ? addDays(new Date(goal.periodStartDate), 7)
+                          : addMonths(new Date(goal.periodStartDate), 1),
+                        "d MMM", 
+                        { locale: nl }
+                      )}
+                    </Badge>
+                  )}
+                </div>
+                <PeriodHistory goalId={goal.id} unit={goal.unit || undefined} />
+              </div>
+            )}
+
+            {goal.targetDate && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CalendarDays className="w-4 h-4" />
+                <span>Deadline: {format(new Date(goal.targetDate), "d MMMM yyyy", { locale: nl })}</span>
               </div>
             )}
 

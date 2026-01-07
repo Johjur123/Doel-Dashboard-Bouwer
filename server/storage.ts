@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { goals, logs, userProfiles, activities, goalNotes, milestonePhotos, type Goal, type InsertGoal, type Log, type InsertLog, type UserProfile, type InsertUserProfile, type Activity, type InsertActivity, type GoalNote, type InsertGoalNote, type MilestonePhoto, type InsertMilestonePhoto } from "@shared/schema";
+import { goals, logs, userProfiles, activities, goalNotes, milestonePhotos, periodHistory, type Goal, type InsertGoal, type Log, type InsertLog, type UserProfile, type InsertUserProfile, type Activity, type InsertActivity, type GoalNote, type InsertGoalNote, type MilestonePhoto, type InsertMilestonePhoto, type PeriodHistory, type InsertPeriodHistory } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -20,6 +20,9 @@ export interface IStorage {
   createMilestonePhoto(photo: InsertMilestonePhoto): Promise<MilestonePhoto>;
   getMilestonePhotos(goalId: number): Promise<MilestonePhoto[]>;
   deleteMilestonePhoto(id: number): Promise<void>;
+  createPeriodHistory(history: InsertPeriodHistory): Promise<PeriodHistory>;
+  getPeriodHistory(goalId: number): Promise<PeriodHistory[]>;
+  checkAndResetPeriods(): Promise<void>;
   seed(): Promise<void>;
 }
 
@@ -100,20 +103,73 @@ export class DatabaseStorage implements IStorage {
     await db.delete(milestonePhotos).where(eq(milestonePhotos.id, id));
   }
 
+  async createPeriodHistory(history: InsertPeriodHistory): Promise<PeriodHistory> {
+    const [newHistory] = await db.insert(periodHistory).values(history).returning();
+    return newHistory;
+  }
+
+  async getPeriodHistory(goalId: number): Promise<PeriodHistory[]> {
+    return await db.select().from(periodHistory).where(eq(periodHistory.goalId, goalId)).orderBy(desc(periodHistory.periodEnd));
+  }
+
+  async checkAndResetPeriods(): Promise<void> {
+    const allGoals = await this.getGoals();
+    const now = new Date();
+    
+    for (const goal of allGoals) {
+      if (!goal.resetPeriod || goal.resetPeriod === "none") continue;
+      if (!goal.periodStartDate) {
+        await this.updateGoal(goal.id, { periodStartDate: now });
+        continue;
+      }
+
+      const periodStart = new Date(goal.periodStartDate);
+      let periodEnd: Date;
+      let shouldReset = false;
+
+      if (goal.resetPeriod === "weekly") {
+        periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + 7);
+        shouldReset = now >= periodEnd;
+      } else if (goal.resetPeriod === "monthly") {
+        periodEnd = new Date(periodStart);
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+        shouldReset = now >= periodEnd;
+      }
+
+      if (shouldReset) {
+        await this.createPeriodHistory({
+          goalId: goal.id,
+          periodType: goal.resetPeriod,
+          periodStart: periodStart,
+          periodEnd: periodEnd!,
+          finalValue: goal.currentValue || 0,
+          targetValue: goal.targetValue || null,
+        });
+
+        await this.updateGoal(goal.id, {
+          currentValue: 0,
+          periodStartDate: now,
+        });
+      }
+    }
+  }
+
   async seed(): Promise<void> {
     const existingGoals = await this.getGoals();
     if (existingGoals.length > 0) return;
 
+    const now = new Date();
     const seedGoals: InsertGoal[] = [
-      { title: "Max wiet per week", category: "lifestyle", type: "counter", currentValue: 1, targetValue: 3, unit: "gram", icon: "🌿", color: "green" },
-      { title: "Alcohol per week", category: "lifestyle", type: "counter", currentValue: 2, targetValue: 5, unit: "drankjes", icon: "🍷", color: "red" },
-      { title: "Sport per week", category: "lifestyle", type: "counter", currentValue: 2, targetValue: 4, unit: "workouts", icon: "💪", color: "blue" },
-      { title: "Gezond eten", category: "lifestyle", type: "counter", currentValue: 5, targetValue: 7, unit: "dagen", icon: "🥗", color: "green" },
-      { title: "Budget boodschappen", category: "lifestyle", type: "progress", currentValue: 280, targetValue: 400, unit: "euro", icon: "🛒", color: "orange" },
+      { title: "Max wiet per week", category: "lifestyle", type: "counter", currentValue: 1, targetValue: 3, unit: "gram", icon: "🌿", color: "green", resetPeriod: "weekly", periodStartDate: now },
+      { title: "Alcohol per week", category: "lifestyle", type: "counter", currentValue: 2, targetValue: 5, unit: "drankjes", icon: "🍷", color: "red", resetPeriod: "weekly", periodStartDate: now },
+      { title: "Sport per week", category: "lifestyle", type: "counter", currentValue: 2, targetValue: 4, unit: "workouts", icon: "💪", color: "blue", resetPeriod: "weekly", periodStartDate: now },
+      { title: "Gezond eten", category: "lifestyle", type: "counter", currentValue: 5, targetValue: 7, unit: "dagen", icon: "🥗", color: "green", resetPeriod: "weekly", periodStartDate: now },
+      { title: "Budget boodschappen", category: "lifestyle", type: "progress", currentValue: 280, targetValue: 400, unit: "euro", icon: "🛒", color: "orange", resetPeriod: "monthly", periodStartDate: now },
 
-      { title: "Tokio Trip", category: "savings", type: "progress", currentValue: 2400, targetValue: 5000, unit: "euro", icon: "🇯🇵", color: "pink" },
-      { title: "Canada + New York", category: "savings", type: "progress", currentValue: 4500, targetValue: 8000, unit: "euro", icon: "🍁", color: "red" },
-      { title: "Noodfonds", category: "savings", type: "progress", currentValue: 3000, targetValue: 10000, unit: "euro", icon: "🛡️", color: "blue" },
+      { title: "Tokio Trip", category: "savings", type: "progress", currentValue: 2400, targetValue: 5000, unit: "euro", icon: "🇯🇵", color: "pink", resetPeriod: "none", targetDate: new Date("2025-12-01") },
+      { title: "Canada + New York", category: "savings", type: "progress", currentValue: 4500, targetValue: 8000, unit: "euro", icon: "🍁", color: "red", resetPeriod: "none", targetDate: new Date("2026-06-01") },
+      { title: "Noodfonds", category: "savings", type: "progress", currentValue: 3000, targetValue: 10000, unit: "euro", icon: "🛡️", color: "blue", resetPeriod: "none" },
 
       {
         title: "Visibilita Locale",

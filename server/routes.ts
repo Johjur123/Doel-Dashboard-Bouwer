@@ -11,6 +11,7 @@ export async function registerRoutes(
   await storage.seed();
 
   app.get(api.goals.list.path, async (req, res) => {
+    await storage.checkAndResetPeriods();
     const goals = await storage.getGoals();
     res.json(goals);
   });
@@ -193,6 +194,11 @@ export async function registerRoutes(
   app.delete(api.photos.delete.path, async (req, res) => {
     await storage.deleteMilestonePhoto(Number(req.params.id));
     res.status(204).send();
+  });
+
+  app.get(api.periodHistory.list.path, async (req, res) => {
+    const history = await storage.getPeriodHistory(Number(req.params.goalId));
+    res.json(history);
   });
 
   return httpServer;
