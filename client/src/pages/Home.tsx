@@ -75,7 +75,7 @@ export default function Home() {
     ? casaGoals.reduce((sum, g) => sum + (g.currentValue || 0), 0) / casaGoals.reduce((sum, g) => sum + (g.targetValue || 100), 0) * 100
     : 0;
 
-  const relationshipStart = new Date(2020, 9, 2);
+  const relationshipStart = new Date(2025, 9, 2);
   const daysTogether = differenceInDays(new Date(), relationshipStart);
 
   const milestoneGoals = goals?.filter(g => g.category === "milestones") || [];

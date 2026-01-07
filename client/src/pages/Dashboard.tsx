@@ -1023,7 +1023,7 @@ function MilestoneCard({ goal, index, onClick, onToggle }: { goal: Goal; index: 
 }
 
 function FunCard({ goal, index, onClick }: { goal: Goal; index: number; onClick: () => void }) {
-  const relationshipStart = new Date(2020, 9, 2);
+  const relationshipStart = new Date(2025, 9, 2);
   const isAutoCalculated = goal.title.toLowerCase().includes("dagen samen");
   const displayValue = isAutoCalculated 
     ? differenceInDays(new Date(), relationshipStart)
