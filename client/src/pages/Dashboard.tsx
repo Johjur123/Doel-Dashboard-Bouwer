@@ -9,7 +9,7 @@ import { CreateGoalDialog } from "@/components/CreateGoalDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Goal, RoadmapStep, RoomItem } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Check, ChevronDown, ChevronUp, Minus, Sparkles, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, Check, ChevronDown, ChevronUp, ChevronRight, Minus, Sparkles, ArrowLeft, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
 
@@ -692,7 +692,7 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
         <motion.button
           onClick={(e) => onToggleExpand(e, goal.id)}
           className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm text-muted-foreground transition-colors"
-          whileHover={{ backgroundColor: "hsl(var(--secondary) / 0.5)" }}
+          whileHover={{ backgroundColor: "rgba(128, 128, 128, 0.15)" }}
           data-testid={`button-expand-${goal.id}`}
         >
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
