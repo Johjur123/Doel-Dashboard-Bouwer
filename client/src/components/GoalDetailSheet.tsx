@@ -4,10 +4,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { useLogs, useCreateLog, useUpdateGoal } from "@/hooks/use-goals";
 import { GoalNotes } from "@/components/GoalNotes";
 import { PeriodHistory } from "@/components/PeriodHistory";
+import { ProgressChart } from "@/components/ProgressChart";
+import { MilestonePhotos } from "@/components/MilestonePhotos";
 import { Badge } from "@/components/ui/badge";
 import { format, differenceInDays, addDays, addMonths } from "date-fns";
 import { nl } from "date-fns/locale";
-import { Loader2, Plus, Minus, Check, Calendar, MessageSquare, Trash2, X, Clock, CalendarDays } from "lucide-react";
+import { Loader2, Plus, Minus, Check, Calendar, MessageSquare, Trash2, X, Clock, CalendarDays, TrendingUp } from "lucide-react";
 import { getGoalIcon } from "@/lib/goal-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -499,6 +501,16 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
               </div>
             )}
 
+            {(goal.type === "counter" || goal.type === "progress") && logs && logs.length > 0 && (
+              <div className="bg-card rounded-xl border border-border p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="font-semibold text-sm">Voortgang grafiek</h3>
+                </div>
+                <ProgressChart goal={goal} days={14} />
+              </div>
+            )}
+
             {logs && logs.length > 0 && (
               <div className="bg-card rounded-xl border border-border p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -536,6 +548,12 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
                     ))}
                   </AnimatePresence>
                 </div>
+              </div>
+            )}
+
+            {goal.category === "milestones" && (
+              <div className="bg-card rounded-xl border border-border p-4">
+                <MilestonePhotos goalId={goal.id} />
               </div>
             )}
 
