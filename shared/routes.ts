@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertGoalSchema, insertLogSchema, insertUserProfileSchema, insertGoalNoteSchema, insertMilestonePhotoSchema, goals, logs, userProfiles, activities, goalNotes, milestonePhotos, periodHistory } from './schema';
+import { insertGoalSchema, insertLogSchema, insertUserProfileSchema, insertGoalNoteSchema, insertMilestonePhotoSchema, insertIdeaCategorySchema, insertIdeaSchema, goals, logs, userProfiles, activities, goalNotes, milestonePhotos, periodHistory, ideaCategories, ideas } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -189,6 +189,83 @@ export const api = {
       path: '/api/goals/:goalId/history',
       responses: {
         200: z.array(z.custom<typeof periodHistory.$inferSelect>()),
+      },
+    },
+  },
+  ideaCategories: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/idea-categories',
+      responses: {
+        200: z.array(z.custom<typeof ideaCategories.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/idea-categories',
+      input: insertIdeaCategorySchema,
+      responses: {
+        201: z.custom<typeof ideaCategories.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/idea-categories/:id',
+      input: insertIdeaCategorySchema.partial(),
+      responses: {
+        200: z.custom<typeof ideaCategories.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/idea-categories/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  ideas: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/ideas',
+      responses: {
+        200: z.array(z.custom<typeof ideas.$inferSelect>()),
+      },
+    },
+    listByCategory: {
+      method: 'GET' as const,
+      path: '/api/idea-categories/:categoryId/ideas',
+      responses: {
+        200: z.array(z.custom<typeof ideas.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/ideas',
+      input: insertIdeaSchema,
+      responses: {
+        201: z.custom<typeof ideas.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/ideas/:id',
+      input: insertIdeaSchema.partial(),
+      responses: {
+        200: z.custom<typeof ideas.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/ideas/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
       },
     },
   },

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { goals, logs, userProfiles, activities, goalNotes, milestonePhotos, periodHistory, type Goal, type InsertGoal, type Log, type InsertLog, type UserProfile, type InsertUserProfile, type Activity, type InsertActivity, type GoalNote, type InsertGoalNote, type MilestonePhoto, type InsertMilestonePhoto, type PeriodHistory, type InsertPeriodHistory } from "@shared/schema";
+import { goals, logs, userProfiles, activities, goalNotes, milestonePhotos, periodHistory, ideaCategories, ideas, type Goal, type InsertGoal, type Log, type InsertLog, type UserProfile, type InsertUserProfile, type Activity, type InsertActivity, type GoalNote, type InsertGoalNote, type MilestonePhoto, type InsertMilestonePhoto, type PeriodHistory, type InsertPeriodHistory, type IdeaCategory, type InsertIdeaCategory, type Idea, type InsertIdea } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -25,6 +25,14 @@ export interface IStorage {
   createPeriodHistory(history: InsertPeriodHistory): Promise<PeriodHistory>;
   getPeriodHistory(goalId: number): Promise<PeriodHistory[]>;
   checkAndResetPeriods(): Promise<void>;
+  getIdeaCategories(): Promise<IdeaCategory[]>;
+  createIdeaCategory(category: InsertIdeaCategory): Promise<IdeaCategory>;
+  updateIdeaCategory(id: number, category: Partial<InsertIdeaCategory>): Promise<IdeaCategory | undefined>;
+  deleteIdeaCategory(id: number): Promise<void>;
+  getIdeas(categoryId?: number): Promise<Idea[]>;
+  createIdea(idea: InsertIdea): Promise<Idea>;
+  updateIdea(id: number, idea: Partial<InsertIdea>): Promise<Idea | undefined>;
+  deleteIdea(id: number): Promise<void>;
   seed(): Promise<void>;
 }
 
@@ -169,6 +177,46 @@ export class DatabaseStorage implements IStorage {
         });
       }
     }
+  }
+
+  async getIdeaCategories(): Promise<IdeaCategory[]> {
+    return await db.select().from(ideaCategories).orderBy(ideaCategories.id);
+  }
+
+  async createIdeaCategory(category: InsertIdeaCategory): Promise<IdeaCategory> {
+    const [newCategory] = await db.insert(ideaCategories).values(category).returning();
+    return newCategory;
+  }
+
+  async updateIdeaCategory(id: number, update: Partial<InsertIdeaCategory>): Promise<IdeaCategory | undefined> {
+    const [updated] = await db.update(ideaCategories).set(update).where(eq(ideaCategories.id, id)).returning();
+    return updated;
+  }
+
+  async deleteIdeaCategory(id: number): Promise<void> {
+    await db.delete(ideas).where(eq(ideas.categoryId, id));
+    await db.delete(ideaCategories).where(eq(ideaCategories.id, id));
+  }
+
+  async getIdeas(categoryId?: number): Promise<Idea[]> {
+    if (categoryId) {
+      return await db.select().from(ideas).where(eq(ideas.categoryId, categoryId)).orderBy(ideas.id);
+    }
+    return await db.select().from(ideas).orderBy(ideas.id);
+  }
+
+  async createIdea(idea: InsertIdea): Promise<Idea> {
+    const [newIdea] = await db.insert(ideas).values(idea).returning();
+    return newIdea;
+  }
+
+  async updateIdea(id: number, update: Partial<InsertIdea>): Promise<Idea | undefined> {
+    const [updated] = await db.update(ideas).set(update).where(eq(ideas.id, id)).returning();
+    return updated;
+  }
+
+  async deleteIdea(id: number): Promise<void> {
+    await db.delete(ideas).where(eq(ideas.id, id));
   }
 
   async seed(): Promise<void> {

@@ -233,5 +233,84 @@ export async function registerRoutes(
     res.json(history);
   });
 
+  app.get(api.ideaCategories.list.path, async (req, res) => {
+    const categories = await storage.getIdeaCategories();
+    res.json(categories);
+  });
+
+  app.post(api.ideaCategories.create.path, async (req, res) => {
+    try {
+      const input = api.ideaCategories.create.input.parse(req.body);
+      const category = await storage.createIdeaCategory(input);
+      res.status(201).json(category);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.patch(api.ideaCategories.update.path, async (req, res) => {
+    try {
+      const input = api.ideaCategories.update.input.parse(req.body);
+      const updated = await storage.updateIdeaCategory(Number(req.params.id), input);
+      if (!updated) return res.status(404).json({ message: "Category not found" });
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.ideaCategories.delete.path, async (req, res) => {
+    await storage.deleteIdeaCategory(Number(req.params.id));
+    res.status(204).send();
+  });
+
+  app.get(api.ideas.list.path, async (req, res) => {
+    const allIdeas = await storage.getIdeas();
+    res.json(allIdeas);
+  });
+
+  app.get(api.ideas.listByCategory.path, async (req, res) => {
+    const categoryIdeas = await storage.getIdeas(Number(req.params.categoryId));
+    res.json(categoryIdeas);
+  });
+
+  app.post(api.ideas.create.path, async (req, res) => {
+    try {
+      const input = api.ideas.create.input.parse(req.body);
+      const idea = await storage.createIdea(input);
+      res.status(201).json(idea);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.patch(api.ideas.update.path, async (req, res) => {
+    try {
+      const input = api.ideas.update.input.parse(req.body);
+      const updated = await storage.updateIdea(Number(req.params.id), input);
+      if (!updated) return res.status(404).json({ message: "Idea not found" });
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.ideas.delete.path, async (req, res) => {
+    await storage.deleteIdea(Number(req.params.id));
+    res.status(204).send();
+  });
+
   return httpServer;
 }

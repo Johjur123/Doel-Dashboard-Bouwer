@@ -73,6 +73,22 @@ export const milestonePhotos = pgTable("milestone_photos", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const ideaCategories = pgTable("idea_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  icon: text("icon"),
+  color: text("color"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const ideas = pgTable("ideas", {
+  id: serial("id").primaryKey(),
+  categoryId: integer("category_id").notNull(),
+  title: text("title").notNull(),
+  completed: boolean("completed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export type RoomItem = {
   title: string;
   completed: boolean;
@@ -105,6 +121,8 @@ export const insertActivitySchema = createInsertSchema(activities).omit({ id: tr
 export const insertGoalNoteSchema = createInsertSchema(goalNotes).omit({ id: true, createdAt: true });
 export const insertMilestonePhotoSchema = createInsertSchema(milestonePhotos).omit({ id: true, createdAt: true });
 export const insertPeriodHistorySchema = createInsertSchema(periodHistory).omit({ id: true, createdAt: true });
+export const insertIdeaCategorySchema = createInsertSchema(ideaCategories).omit({ id: true, createdAt: true });
+export const insertIdeaSchema = createInsertSchema(ideas).omit({ id: true, createdAt: true });
 
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type InsertLog = z.infer<typeof insertLogSchema>;
@@ -113,6 +131,8 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type InsertGoalNote = z.infer<typeof insertGoalNoteSchema>;
 export type InsertMilestonePhoto = z.infer<typeof insertMilestonePhotoSchema>;
 export type InsertPeriodHistory = z.infer<typeof insertPeriodHistorySchema>;
+export type InsertIdeaCategory = z.infer<typeof insertIdeaCategorySchema>;
+export type InsertIdea = z.infer<typeof insertIdeaSchema>;
 
 export type Goal = typeof goals.$inferSelect;
 export type Log = typeof logs.$inferSelect;
@@ -121,3 +141,5 @@ export type Activity = typeof activities.$inferSelect;
 export type GoalNote = typeof goalNotes.$inferSelect;
 export type MilestonePhoto = typeof milestonePhotos.$inferSelect;
 export type PeriodHistory = typeof periodHistory.$inferSelect;
+export type IdeaCategory = typeof ideaCategories.$inferSelect;
+export type Idea = typeof ideas.$inferSelect;
