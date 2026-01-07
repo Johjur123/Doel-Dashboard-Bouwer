@@ -5,39 +5,112 @@
 @tailwind utilities;
 
 :root {
-  --background: 210 40% 98%;
+  --background: 220 20% 97%;
   --foreground: 222 47% 11%;
   
-  --primary: 245 58% 51%; /* Playful Purple */
-  --primary-foreground: 210 40% 98%;
+  --primary: 258 90% 66%;
+  --primary-foreground: 0 0% 100%;
   
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
+  --card-border: 220 13% 91%;
   
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
+  --popover-border: 220 13% 91%;
   
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 222 47% 11%;
   
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
   
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  --accent: 220 14% 96%;
+  --accent-foreground: 222 47% 11%;
   
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 245 58% 51%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 258 90% 66%;
   
   --radius: 1rem;
   
-  /* Custom Goal Colors */
+  --sidebar: 220 20% 97%;
+  --sidebar-foreground: 222 47% 11%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-primary: 258 90% 66%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 220 14% 96%;
+  --sidebar-accent-foreground: 222 47% 11%;
+  --sidebar-ring: 258 90% 66%;
+  
   --goal-green: 142 76% 36%;
   --goal-blue: 217 91% 60%;
   --goal-orange: 24 94% 50%;
   --goal-pink: 322 81% 43%;
   --goal-yellow: 48 96% 53%;
+  --goal-purple: 258 90% 66%;
+  
+  --chart-1: 258 90% 66%;
+  --chart-2: 142 76% 36%;
+  --chart-3: 24 94% 50%;
+  --chart-4: 217 91% 60%;
+  --chart-5: 322 81% 43%;
+
+  --button-outline: rgba(0,0,0, .10);
+  --badge-outline: rgba(0,0,0, .05);
+  --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .08);
+}
+
+.dark {
+  --background: 222 47% 6%;
+  --foreground: 210 40% 98%;
+  
+  --primary: 258 90% 66%;
+  --primary-foreground: 0 0% 100%;
+  
+  --card: 222 47% 9%;
+  --card-foreground: 210 40% 98%;
+  --card-border: 222 30% 18%;
+  
+  --popover: 222 47% 9%;
+  --popover-foreground: 210 40% 98%;
+  --popover-border: 222 30% 18%;
+  
+  --secondary: 222 30% 14%;
+  --secondary-foreground: 210 40% 98%;
+  
+  --muted: 222 30% 14%;
+  --muted-foreground: 220 9% 60%;
+  
+  --accent: 222 30% 14%;
+  --accent-foreground: 210 40% 98%;
+  
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 0 0% 100%;
+  
+  --border: 222 30% 18%;
+  --input: 222 30% 18%;
+  --ring: 258 90% 66%;
+  
+  --sidebar: 222 47% 8%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-border: 222 30% 18%;
+  --sidebar-primary: 258 90% 66%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 222 30% 14%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-ring: 258 90% 66%;
+
+  --button-outline: rgba(255,255,255, .10);
+  --badge-outline: rgba(255,255,255, .05);
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
 }
 
 @layer base {
@@ -50,9 +123,12 @@
     font-family: 'Outfit', sans-serif;
     @apply tracking-tight;
   }
+  
+  * {
+    @apply border-border;
+  }
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -64,11 +140,168 @@
   @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30 transition-colors;
 }
 
-/* Glassmorphism Utilities */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .glass {
-  @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-lg;
+  @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg;
 }
 
 .glass-card {
-  @apply bg-white rounded-3xl border border-border/50 shadow-sm hover:shadow-md transition-all duration-300;
+  @apply bg-card rounded-3xl border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300;
+}
+
+.gradient-text {
+  background: linear-gradient(to right, hsl(var(--primary)), hsl(280 70% 60%), hsl(330 80% 65%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dark .gradient-text {
+  background: linear-gradient(to right, hsl(280 90% 75%), hsl(300 80% 70%), hsl(330 90% 75%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
+}
+
+.dark .glow {
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.4), 0 0 60px rgba(139, 92, 246, 0.2);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 30px rgba(139, 92, 246, 0.4); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background-size: 200% 100%;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.5s ease-out forwards;
+}
+
+.streak-fire {
+  filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.6));
+}
+
+.xp-bar {
+  @apply h-2 rounded-full bg-secondary overflow-hidden;
+}
+
+.xp-bar-fill {
+  @apply h-full rounded-full bg-gradient-to-r from-primary to-purple-400 transition-all duration-500;
+}
+
+.level-badge {
+  @apply inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-600 text-white font-bold text-sm shadow-lg;
+}
+
+.achievement-card {
+  @apply relative overflow-hidden rounded-2xl p-4 border transition-all duration-300;
+}
+
+.achievement-card.common {
+  @apply bg-secondary border-border;
+}
+
+.achievement-card.rare {
+  @apply bg-blue-500/10 border-blue-500/30;
+}
+
+.dark .achievement-card.rare {
+  @apply bg-blue-500/20 border-blue-500/40;
+}
+
+.achievement-card.epic {
+  @apply bg-purple-500/10 border-purple-500/30;
+}
+
+.dark .achievement-card.epic {
+  @apply bg-purple-500/20 border-purple-500/40;
+}
+
+.achievement-card.legendary {
+  background: linear-gradient(to bottom right, hsl(45 93% 47% / 0.1), hsl(25 95% 53% / 0.1));
+  @apply border-amber-500/30;
+}
+
+.dark .achievement-card.legendary {
+  background: linear-gradient(to bottom right, hsl(45 93% 47% / 0.25), hsl(25 95% 53% / 0.25));
+  @apply border-amber-400/50;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.5s ease-in-out;
+}
+
+@layer utilities {
+  .hover-elevate:not(.no-default-hover-elevate),
+  .active-elevate-2:not(.no-default-active-elevate) {
+    position: relative;
+    z-index: 0;
+  }
+
+  .hover-elevate:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:not(.no-default-active-elevate)::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    border-radius: inherit;
+    z-index: 999;
+  }
+
+  .hover-elevate:hover:not(.no-default-hover-elevate)::after {
+    background-color: var(--elevate-1);
+  }
+
+  .active-elevate-2:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-2);
+  }
 }

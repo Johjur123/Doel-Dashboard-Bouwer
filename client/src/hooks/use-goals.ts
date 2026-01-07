@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import { InsertGoal, InsertLog } from "@shared/schema";
-
-// --- GOALS ---
+import { InsertGoal, InsertLog, InsertUserProfile } from "@shared/schema";
 
 export function useGoals() {
   return useQuery({
@@ -48,8 +46,6 @@ export function useUpdateGoal() {
   });
 }
 
-// --- LOGS ---
-
 export function useLogs(goalId: number) {
   return useQuery({
     queryKey: [api.logs.list.path, goalId],
@@ -60,6 +56,17 @@ export function useLogs(goalId: number) {
       return api.logs.list.responses[200].parse(await res.json());
     },
     enabled: !!goalId,
+  });
+}
+
+export function useAllLogs() {
+  return useQuery({
+    queryKey: [api.logs.all.path],
+    queryFn: async () => {
+      const res = await fetch(api.logs.all.path);
+      if (!res.ok) throw new Error("Failed to fetch logs");
+      return api.logs.all.responses[200].parse(await res.json());
+    },
   });
 }
 
@@ -76,9 +83,63 @@ export function useCreateLog() {
       return api.logs.create.responses[201].parse(await res.json());
     },
     onSuccess: (_, variables) => {
-      // Invalidate both logs for the specific goal AND the goals list to update current values
       queryClient.invalidateQueries({ queryKey: [api.logs.list.path, variables.goalId] });
       queryClient.invalidateQueries({ queryKey: [api.goals.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.logs.all.path] });
+      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.activity.list.path] });
+    },
+  });
+}
+
+export function useUsers() {
+  return useQuery({
+    queryKey: [api.users.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.users.list.path);
+      if (!res.ok) throw new Error("Failed to fetch users");
+      return api.users.list.responses[200].parse(await res.json());
+    },
+  });
+}
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: number } & Partial<InsertUserProfile>) => {
+      const url = buildUrl(api.users.update.path, { id });
+      const res = await fetch(url, {
+        method: api.users.update.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) throw new Error("Failed to update user");
+      return api.users.update.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+    },
+  });
+}
+
+export function useActivities() {
+  return useQuery({
+    queryKey: [api.activity.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.activity.list.path);
+      if (!res.ok) throw new Error("Failed to fetch activities");
+      return api.activity.list.responses[200].parse(await res.json());
+    },
+  });
+}
+
+export function useStats() {
+  return useQuery({
+    queryKey: [api.stats.get.path],
+    queryFn: async () => {
+      const res = await fetch(api.stats.get.path);
+      if (!res.ok) throw new Error("Failed to fetch stats");
+      return api.stats.get.responses[200].parse(await res.json());
     },
   });
 }
