@@ -1,5 +1,4 @@
-import { useGoals } from "@/hooks/use-goals";
-import { PixelHouse } from "@/components/PixelHouse";
+import { useGoals, useUsers } from "@/hooks/use-goals";
 import { CouplesProfile } from "@/components/CouplesProfile";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { SavingsForecast } from "@/components/SavingsForecast";
@@ -19,7 +18,9 @@ import {
   ChevronRight,
   Activity,
   BarChart3,
-  Bell
+  Bell,
+  Target,
+  TrendingUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
@@ -35,6 +36,7 @@ const categories = [
 
 export default function Home() {
   const { data: goals, isLoading } = useGoals();
+  const { data: users } = useUsers();
 
   const getCategoryProgress = (categoryId: string) => {
     const categoryGoals = goals?.filter(g => g.category === categoryId) || [];
@@ -74,16 +76,17 @@ export default function Home() {
     };
   };
 
-  const casaGoals = goals?.filter(g => g.category === "casa") || [];
-  const casaProgress = casaGoals.length > 0 
-    ? casaGoals.reduce((sum, g) => sum + (g.currentValue || 0), 0) / casaGoals.reduce((sum, g) => sum + (g.targetValue || 100), 0) * 100
-    : 0;
-
   const relationshipStart = new Date(2025, 9, 2);
   const daysTogether = differenceInDays(new Date(), relationshipStart);
 
   const milestoneGoals = goals?.filter(g => g.category === "milestones") || [];
   const completedMilestones = milestoneGoals.filter(g => (g.currentValue || 0) >= 1).length;
+  
+  const totalGoals = goals?.length || 0;
+  const overallProgress = categories.reduce((sum, cat) => sum + getCategoryProgress(cat.id).percentage, 0) / categories.length;
+  
+  const user1Name = users?.[0]?.name || "Partner 1";
+  const user2Name = users?.[1]?.name || "Partner 2";
 
   if (isLoading) {
     return (
@@ -110,75 +113,86 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="hero-gradient">
-        <div className="max-w-4xl mx-auto px-4 py-6 md:py-8 space-y-6 md:space-y-8">
-          <header className="flex items-center justify-between">
-            <div className="w-9" />
-            <CouplesProfile />
+    <div className="min-h-screen bg-background">
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-rose-100/40 via-background to-violet-100/40 dark:from-rose-950/20 dark:via-background dark:to-violet-950/20" />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-rose-400/10 dark:bg-rose-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-40 right-10 w-96 h-96 bg-violet-400/10 dark:bg-violet-500/5 rounded-full blur-3xl" />
+        
+        <div className="relative max-w-4xl mx-auto px-4 pt-6 pb-8">
+          <header className="flex items-center justify-end mb-8">
             <ThemeToggle />
           </header>
 
-          <div className="text-center space-y-2">
-            <motion.h1 
-              className="text-display-lg gradient-text"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              Onze Doelen
-            </motion.h1>
-            <motion.p 
-              className="text-body-sm text-muted-foreground"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-            >
-              Samen bouwen aan onze toekomst
-            </motion.p>
-          </div>
-
           <motion.div 
-            className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
+            className="text-center mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
           >
-            <div className="relative">
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-              >
-                <PixelHouse progress={casaProgress} className="w-36 h-36 md:w-44 md:h-44" />
-              </motion.div>
-              <motion.div 
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass text-xs font-medium whitespace-nowrap text-orange-600 dark:text-orange-400"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                Casa Hörnig {Math.round(casaProgress)}%
-              </motion.div>
+            <div className="mb-6">
+              <CouplesProfile />
             </div>
             
-            <div className="grid grid-cols-2 gap-3 text-center w-full md:w-auto">
-              <motion.div 
-                className="stat-card hover-lift"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <div className="text-display-sm text-rose-500">{daysTogether}</div>
-                <div className="text-caption mt-1">dagen samen</div>
-              </motion.div>
-              <motion.div 
-                className="stat-card hover-lift"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.35 }}
-              >
-                <div className="text-display-sm text-amber-500">{completedMilestones}/{milestoneGoals.length}</div>
-                <div className="text-caption mt-1">mijlpalen</div>
-              </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.15 }}
+            >
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
+                <span className="bg-gradient-to-r from-rose-500 via-violet-500 to-rose-500 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
+                  {user1Name} & {user2Name}
+                </span>
+              </h1>
+              <p className="text-muted-foreground">
+                Samen bouwen aan jullie toekomst
+              </p>
+            </motion.div>
+          </motion.div>
+
+          <motion.div 
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="bg-white/60 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/20 dark:border-white/10">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center">
+                  <Heart className="w-4 h-4 text-rose-500" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-rose-500">{daysTogether}</div>
+              <div className="text-xs text-muted-foreground">dagen samen</div>
+            </div>
+            
+            <div className="bg-white/60 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/20 dark:border-white/10">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-amber-500">{completedMilestones}/{milestoneGoals.length}</div>
+              <div className="text-xs text-muted-foreground">mijlpalen</div>
+            </div>
+            
+            <div className="bg-white/60 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/20 dark:border-white/10">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                  <Target className="w-4 h-4 text-violet-500" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-violet-500">{totalGoals}</div>
+              <div className="text-xs text-muted-foreground">actieve doelen</div>
+            </div>
+            
+            <div className="bg-white/60 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/20 dark:border-white/10">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-emerald-500">{Math.round(overallProgress)}%</div>
+              <div className="text-xs text-muted-foreground">totale voortgang</div>
             </div>
           </motion.div>
         </div>
