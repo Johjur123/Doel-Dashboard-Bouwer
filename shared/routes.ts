@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertGoalSchema, insertLogSchema, insertUserProfileSchema, goals, logs, userProfiles, activityFeed } from './schema';
+import { insertGoalSchema, insertLogSchema, insertUserProfileSchema, goals, logs, userProfiles, activities } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -97,7 +97,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/activity',
       responses: {
-        200: z.array(z.custom<typeof activityFeed.$inferSelect>()),
+        200: z.array(z.custom<typeof activities.$inferSelect>()),
       },
     },
   },
@@ -107,11 +107,9 @@ export const api = {
       path: '/api/stats',
       responses: {
         200: z.object({
-          totalXp: z.number(),
-          currentStreak: z.number(),
-          longestStreak: z.number(),
           goalsCompleted: z.number(),
-          totalLogs: z.number(),
+          totalItems: z.number(),
+          completedItems: z.number(),
         }),
       },
     },

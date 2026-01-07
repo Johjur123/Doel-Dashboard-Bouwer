@@ -86,8 +86,6 @@ export function useCreateLog() {
       queryClient.invalidateQueries({ queryKey: [api.logs.list.path, variables.goalId] });
       queryClient.invalidateQueries({ queryKey: [api.goals.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.logs.all.path] });
-      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
-      queryClient.invalidateQueries({ queryKey: [api.activity.list.path] });
     },
   });
 }
@@ -118,28 +116,6 @@ export function useUpdateUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
-    },
-  });
-}
-
-export function useActivities() {
-  return useQuery({
-    queryKey: [api.activity.list.path],
-    queryFn: async () => {
-      const res = await fetch(api.activity.list.path);
-      if (!res.ok) throw new Error("Failed to fetch activities");
-      return api.activity.list.responses[200].parse(await res.json());
-    },
-  });
-}
-
-export function useStats() {
-  return useQuery({
-    queryKey: [api.stats.get.path],
-    queryFn: async () => {
-      const res = await fetch(api.stats.get.path);
-      if (!res.ok) throw new Error("Failed to fetch stats");
-      return api.stats.get.responses[200].parse(await res.json());
     },
   });
 }

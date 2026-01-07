@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { goals, logs, userProfiles, activityFeed, type Goal, type InsertGoal, type Log, type InsertLog, type UserProfile, type InsertUserProfile, type Activity, type InsertActivity } from "@shared/schema";
+import { goals, logs, userProfiles, activities, type Goal, type InsertGoal, type Log, type InsertLog, type UserProfile, type InsertUserProfile, type Activity, type InsertActivity } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -60,12 +60,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createActivity(activity: InsertActivity): Promise<Activity> {
-    const [newActivity] = await db.insert(activityFeed).values(activity).returning();
+    const [newActivity] = await db.insert(activities).values(activity).returning();
     return newActivity;
   }
 
   async getActivities(limit: number = 20): Promise<Activity[]> {
-    return await db.select().from(activityFeed).orderBy(desc(activityFeed.createdAt)).limit(limit);
+    return await db.select().from(activities).orderBy(desc(activities.createdAt)).limit(limit);
   }
 
   async seed(): Promise<void> {
@@ -93,11 +93,54 @@ export class DatabaseStorage implements IStorage {
         color: "blue",
         metadata: {
           steps: [
-            { title: "Businessplan", completed: true, notes: "Afgerond in december" },
-            { title: "Branding", completed: true, notes: "Logo en kleuren gekozen" },
-            { title: "Website", completed: true, notes: "Live op visibilitalocale.com" },
-            { title: "Product", completed: false, notes: "Eerste dienst definiëren" },
-            { title: "Social media", completed: false },
+            { 
+              title: "Businessplan", 
+              completed: true, 
+              substeps: [
+                { title: "Marktonderzoek", completed: true },
+                { title: "Doelgroep definiëren", completed: true },
+                { title: "Concurrentieanalyse", completed: true },
+                { title: "Financiële projecties", completed: true }
+              ]
+            },
+            { 
+              title: "Branding", 
+              completed: true,
+              substeps: [
+                { title: "Logo ontwerp", completed: true },
+                { title: "Kleurenpalet", completed: true },
+                { title: "Huisstijl document", completed: true }
+              ]
+            },
+            { 
+              title: "Website", 
+              completed: true,
+              substeps: [
+                { title: "Domein registreren", completed: true },
+                { title: "Design mockups", completed: true },
+                { title: "Development", completed: true },
+                { title: "Content schrijven", completed: true },
+                { title: "Live zetten", completed: true }
+              ]
+            },
+            { 
+              title: "Product", 
+              completed: false,
+              substeps: [
+                { title: "Dienst definiëren", completed: false },
+                { title: "Paketten samenstellen", completed: false },
+                { title: "Testversie maken", completed: false }
+              ]
+            },
+            { 
+              title: "Social media", 
+              completed: false,
+              substeps: [
+                { title: "Accounts aanmaken", completed: false },
+                { title: "Contentstrategie", completed: false },
+                { title: "Eerste posts", completed: false }
+              ]
+            },
             { title: "Financiën + prijs", completed: false },
             { title: "Proefklant", completed: false },
             { title: "Eerste volwaardige klant", completed: false }
@@ -114,10 +157,26 @@ export class DatabaseStorage implements IStorage {
         color: "purple",
         metadata: {
           steps: [
-            { title: "Businessplan", completed: true },
+            { 
+              title: "Businessplan", 
+              completed: true,
+              substeps: [
+                { title: "Import regelgeving", completed: true },
+                { title: "Wijnregio's selecteren", completed: true },
+                { title: "Kosten berekenen", completed: false }
+              ]
+            },
             { title: "Branding", completed: false },
             { title: "Website", completed: false },
-            { title: "Product", completed: false, notes: "Contact met wijnboeren in Piemonte" },
+            { 
+              title: "Product", 
+              completed: false, 
+              substeps: [
+                { title: "Contact wijnboeren", completed: true },
+                { title: "Proeverij organiseren", completed: false },
+                { title: "Eerste selectie maken", completed: false }
+              ]
+            },
             { title: "Social media", completed: false },
             { title: "Financiën + prijs", completed: false },
             { title: "Proefklant", completed: false },
@@ -126,14 +185,121 @@ export class DatabaseStorage implements IStorage {
         }
       },
 
-      { title: "Woonkamer", category: "casa", type: "room", currentValue: 85, targetValue: 100, icon: "🛋️", color: "stone", metadata: { items: [{ label: "Nieuwe bank", completed: true }, { label: "Schilderij ophangen", completed: true }, { label: "Planten", completed: false }] } },
-      { title: "Keuken", category: "casa", type: "room", currentValue: 60, targetValue: 100, icon: "🍳", color: "orange", metadata: { items: [{ label: "Nieuwe kraan", completed: true }, { label: "Backsplash", completed: false }, { label: "Opbergruimte", completed: false }] } },
-      { title: "Tuin", category: "casa", type: "room", currentValue: 30, targetValue: 100, icon: "🌳", color: "green", metadata: { items: [{ label: "Terras aanleggen", completed: true }, { label: "Planten", completed: false }, { label: "Verlichting", completed: false }, { label: "Tuinmeubels", completed: false }] } },
-      { title: "Zwembad", category: "casa", type: "room", currentValue: 20, targetValue: 100, icon: "🏊", color: "blue", metadata: { items: [{ label: "Schoonmaken", completed: true }, { label: "Filter systeem", completed: false }, { label: "Verwarming", completed: false }] } },
-      { title: "Slaapkamer", category: "casa", type: "room", currentValue: 90, targetValue: 100, icon: "🛏️", color: "purple", metadata: { items: [{ label: "Nieuw bed", completed: true }, { label: "Gordijnen", completed: true }, { label: "Nachtkastjes", completed: false }] } },
-      { title: "Badkamer", category: "casa", type: "room", currentValue: 45, targetValue: 100, icon: "🚿", color: "teal", metadata: { items: [{ label: "Nieuwe spiegel", completed: true }, { label: "Opbergruimte", completed: false }, { label: "Verlichting", completed: false }] } },
+      { 
+        title: "Woonkamer", 
+        category: "casa", 
+        type: "room", 
+        currentValue: 4, 
+        targetValue: 6, 
+        icon: "🛋️", 
+        color: "stone", 
+        metadata: { 
+          items: [
+            { title: "Nieuwe bank kiezen", completed: true },
+            { title: "Bank bestellen", completed: true },
+            { title: "Schilderij ophangen", completed: true },
+            { title: "Planten kopen", completed: true },
+            { title: "Vloerkleed", completed: false },
+            { title: "Gordijnen", completed: false }
+          ] 
+        } 
+      },
+      { 
+        title: "Keuken", 
+        category: "casa", 
+        type: "room", 
+        currentValue: 2, 
+        targetValue: 5, 
+        icon: "🍳", 
+        color: "orange", 
+        metadata: { 
+          items: [
+            { title: "Nieuwe kraan installeren", completed: true },
+            { title: "Keukenblad schoonmaken", completed: true },
+            { title: "Backsplash tegels", completed: false },
+            { title: "Opbergruimte organiseren", completed: false },
+            { title: "Verlichting upgraden", completed: false }
+          ] 
+        } 
+      },
+      { 
+        title: "Tuin", 
+        category: "casa", 
+        type: "room", 
+        currentValue: 2, 
+        targetValue: 8, 
+        icon: "🌳", 
+        color: "green", 
+        metadata: { 
+          items: [
+            { title: "Terras schoonmaken", completed: true },
+            { title: "Onkruid wieden", completed: true },
+            { title: "Nieuwe planten kopen", completed: false },
+            { title: "Verlichting plaatsen", completed: false },
+            { title: "Tuinmeubels kopen", completed: false },
+            { title: "BBQ installeren", completed: false },
+            { title: "Irrigatiesysteem", completed: false },
+            { title: "Hek repareren", completed: false }
+          ] 
+        } 
+      },
+      { 
+        title: "Zwembad", 
+        category: "casa", 
+        type: "room", 
+        currentValue: 1, 
+        targetValue: 5, 
+        icon: "🏊", 
+        color: "blue", 
+        metadata: { 
+          items: [
+            { title: "Schoonmaken", completed: true },
+            { title: "Filter controleren", completed: false },
+            { title: "Chemicaliën kopen", completed: false },
+            { title: "Pomp repareren", completed: false },
+            { title: "Afdekzeil kopen", completed: false }
+          ] 
+        } 
+      },
+      { 
+        title: "Slaapkamer", 
+        category: "casa", 
+        type: "room", 
+        currentValue: 4, 
+        targetValue: 5, 
+        icon: "🛏️", 
+        color: "purple", 
+        metadata: { 
+          items: [
+            { title: "Nieuw bed gekocht", completed: true },
+            { title: "Matras gekozen", completed: true },
+            { title: "Gordijnen opgehangen", completed: true },
+            { title: "Nachtkastjes geplaatst", completed: true },
+            { title: "Decoratie toevoegen", completed: false }
+          ] 
+        } 
+      },
+      { 
+        title: "Badkamer", 
+        category: "casa", 
+        type: "room", 
+        currentValue: 2, 
+        targetValue: 6, 
+        icon: "🚿", 
+        color: "teal", 
+        metadata: { 
+          items: [
+            { title: "Nieuwe spiegel", completed: true },
+            { title: "Handdoekhouder", completed: true },
+            { title: "Opbergruimte", completed: false },
+            { title: "Verlichting", completed: false },
+            { title: "Tegels voegen", completed: false },
+            { title: "Plantjes", completed: false }
+          ] 
+        } 
+      },
 
-      { title: "Samenwonen", category: "milestones", type: "boolean", currentValue: 1, targetValue: 1, icon: "🏠", color: "teal", unit: "Gelukt in september 2024" },
+      { title: "Samenwonen", category: "milestones", type: "boolean", currentValue: 1, targetValue: 1, icon: "🏠", color: "teal", unit: "September 2024" },
       { title: "Eerste huurder", category: "milestones", type: "boolean", currentValue: 0, targetValue: 1, icon: "🔑", color: "yellow" },
       { title: "Eerste betaalde offerte", category: "milestones", type: "boolean", currentValue: 0, targetValue: 1, icon: "📝", color: "green" },
       { title: "Italiaans B1 niveau", category: "milestones", type: "boolean", currentValue: 0, targetValue: 1, icon: "🇮🇹", color: "green" },
@@ -148,19 +314,11 @@ export class DatabaseStorage implements IStorage {
     await db.insert(goals).values(seedGoals);
 
     const seedUsers: InsertUserProfile[] = [
-      { name: "Jij", avatar: "👨", xp: 1250, level: 5, currentStreak: 12, longestStreak: 28, badges: ['first_log', 'week_streak', 'business_step'] },
-      { name: "Vriendin", avatar: "👩", xp: 980, level: 4, currentStreak: 8, longestStreak: 21, badges: ['first_log', 'week_streak'] },
+      { name: "Jij", avatar: "👨" },
+      { name: "Vriendin", avatar: "👩" },
     ];
 
     await db.insert(userProfiles).values(seedUsers);
-
-    const seedActivities: InsertActivity[] = [
-      { userId: 1, goalId: 3, action: "log", description: "Workout gelogd", xpEarned: 15 },
-      { userId: 2, goalId: 1, action: "log", description: "Sparen bijgewerkt", xpEarned: 10 },
-      { userId: 1, goalId: 5, action: "step_complete", description: "Website stap voltooid", xpEarned: 50 },
-    ];
-
-    await db.insert(activityFeed).values(seedActivities);
   }
 }
 

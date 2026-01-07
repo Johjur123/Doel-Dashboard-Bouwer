@@ -49,15 +49,12 @@ export async function registerRoutes(
         const users = await storage.getUsers();
         if (users.length > 0) {
           const user = users[0];
-          const newXp = (user.xp || 0) + 10;
-          await storage.updateUser(user.id, { xp: newXp });
           
           await storage.createActivity({
             userId: user.id,
             goalId: goal.id,
             action: "log",
             description: `${input.value > 0 ? "+" : ""}${input.value} ${goal.unit || ""} bij ${goal.title}`,
-            xpEarned: 10,
           });
         }
       }
@@ -112,25 +109,37 @@ export async function registerRoutes(
   });
 
   app.get(api.stats.get.path, async (req, res) => {
-    const users = await storage.getUsers();
     const goals = await storage.getGoals();
-    const logs = await storage.getAllLogs();
     
-    const totalXp = users.reduce((sum, u) => sum + (u.xp || 0), 0);
-    const streaks = users.map(u => u.currentStreak || 0);
-    const longestStreaks = users.map(u => u.longestStreak || 0);
-    const maxStreak = streaks.length > 0 ? Math.max(...streaks) : 0;
-    const longestStreak = longestStreaks.length > 0 ? Math.max(...longestStreaks) : 0;
     const goalsCompleted = goals.filter(g => 
       g.type === "boolean" && (g.currentValue || 0) >= (g.targetValue || 1)
     ).length;
     
+    let totalItems = 0;
+    let completedItems = 0;
+    
+    goals.forEach(g => {
+      const metadata = g.metadata as any;
+      if (g.type === "room" && metadata?.items) {
+        totalItems += metadata.items.length;
+        completedItems += metadata.items.filter((i: any) => i.completed).length;
+      }
+      if (g.type === "roadmap" && metadata?.steps) {
+        metadata.steps.forEach((step: any) => {
+          totalItems += 1;
+          if (step.completed) completedItems += 1;
+          if (step.substeps) {
+            totalItems += step.substeps.length;
+            completedItems += step.substeps.filter((s: any) => s.completed).length;
+          }
+        });
+      }
+    });
+    
     res.json({
-      totalXp,
-      currentStreak: maxStreak,
-      longestStreak,
       goalsCompleted,
-      totalLogs: logs.length,
+      totalItems,
+      completedItems,
     });
   });
 

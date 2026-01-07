@@ -2,11 +2,10 @@ import { useState } from "react";
 import { useGoals, useCreateLog, useUpdateGoal } from "@/hooks/use-goals";
 import { Header } from "@/components/Header";
 import { Navigation } from "@/components/Navigation";
-import { StatsBar } from "@/components/StatsBar";
-import { ActivityFeed } from "@/components/ActivityFeed";
 import { GoalDetailSheet } from "@/components/GoalDetailSheet";
+import { PixelHouse } from "@/components/PixelHouse";
 import { Confetti, useConfetti } from "@/components/Confetti";
-import { Goal, RoadmapStep } from "@shared/schema";
+import { Goal, RoadmapStep, RoomItem } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Check, ChevronDown, ChevronUp, Minus, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,7 +14,6 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("lifestyle");
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [expandedGoals, setExpandedGoals] = useState<Set<number>>(new Set());
-  const [activityOpen, setActivityOpen] = useState(false);
   
   const { data: goals, isLoading } = useGoals();
   const createLog = useCreateLog();
@@ -23,6 +21,10 @@ export default function Dashboard() {
   const confetti = useConfetti();
 
   const filteredGoals = goals?.filter(g => g.category === activeTab) || [];
+  const casaGoals = goals?.filter(g => g.category === "casa") || [];
+  const casaProgress = casaGoals.length > 0 
+    ? casaGoals.reduce((sum, g) => sum + (g.currentValue || 0), 0) / casaGoals.reduce((sum, g) => sum + (g.targetValue || 100), 0) * 100
+    : 0;
 
   const handleQuickLog = (e: React.MouseEvent, goal: Goal, value: number) => {
     e.stopPropagation();
@@ -33,25 +35,52 @@ export default function Dashboard() {
     });
   };
 
-  const handleToggleStep = (e: React.MouseEvent, goal: Goal, stepIndex: number) => {
+  const handleToggleStep = (e: React.MouseEvent, goal: Goal, stepIndex: number, substepIndex?: number) => {
     e.stopPropagation();
     if (!goal.metadata) return;
     
     const metadata = goal.metadata as any;
-    const steps = metadata.steps as RoadmapStep[];
-    const updatedSteps = [...steps];
-    const wasCompleted = updatedSteps[stepIndex].completed;
-    updatedSteps[stepIndex].completed = !wasCompleted;
+    const steps = [...(metadata.steps as RoadmapStep[])];
     
-    const completedCount = updatedSteps.filter(s => s.completed).length;
+    if (substepIndex !== undefined && steps[stepIndex].substeps) {
+      const substeps = [...steps[stepIndex].substeps!];
+      substeps[substepIndex].completed = !substeps[substepIndex].completed;
+      steps[stepIndex].substeps = substeps;
+      
+      const allSubstepsComplete = substeps.every(s => s.completed);
+      if (allSubstepsComplete && !steps[stepIndex].completed) {
+        steps[stepIndex].completed = true;
+      }
+    } else {
+      steps[stepIndex].completed = !steps[stepIndex].completed;
+    }
+    
+    const completedCount = steps.filter(s => s.completed).length;
     
     updateGoal.mutate({ 
       id: goal.id, 
       currentValue: completedCount,
-      metadata: { ...metadata, steps: updatedSteps } 
+      metadata: { ...metadata, steps } 
+    });
+  };
+
+  const handleToggleRoomItem = (e: React.MouseEvent, goal: Goal, itemIndex: number) => {
+    e.stopPropagation();
+    if (!goal.metadata) return;
+    
+    const metadata = goal.metadata as any;
+    const items = [...(metadata.items as RoomItem[])];
+    items[itemIndex].completed = !items[itemIndex].completed;
+    
+    const completedCount = items.filter(i => i.completed).length;
+    
+    updateGoal.mutate({ 
+      id: goal.id, 
+      currentValue: completedCount,
+      metadata: { ...metadata, items } 
     });
 
-    if (!wasCompleted && completedCount === steps.length) {
+    if (!items[itemIndex].completed === false && completedCount === items.length) {
       confetti.trigger();
     }
   };
@@ -83,16 +112,14 @@ export default function Dashboard() {
       <Confetti active={confetti.isActive} onComplete={confetti.reset} />
       <Header />
       
-      <div className="max-w-7xl mx-auto px-4 py-4 space-y-6">
-        <StatsBar onActivityClick={() => setActivityOpen(true)} />
-        
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
         
-        <main className="pb-24">
+        <main className="pb-8">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[1,2,3].map(i => (
-                <div key={i} className="h-48 rounded-3xl bg-muted animate-pulse" />
+                <div key={i} className="h-32 rounded-2xl bg-muted animate-pulse" />
               ))}
             </div>
           ) : (
@@ -103,43 +130,49 @@ export default function Dashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className={cn(
+              >
+                {activeTab === "casa" && (
+                  <div className="mb-8 flex justify-center">
+                    <PixelHouse progress={casaProgress} className="w-48 h-48" />
+                  </div>
+                )}
+                
+                <div className={cn(
                   "grid gap-4",
                   activeTab === "lifestyle" && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-                  activeTab === "savings" && "grid-cols-1 lg:grid-cols-2",
-                  activeTab === "business" && "grid-cols-1 max-w-3xl mx-auto",
-                  activeTab === "casa" && "grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
-                  activeTab === "milestones" && "grid-cols-1 max-w-2xl mx-auto",
-                  activeTab === "fun" && "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-                )}
-              >
-                {filteredGoals.length === 0 ? (
-                  <div className="col-span-full text-center py-20">
-                    <Sparkles className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                    <p className="text-muted-foreground text-lg">Geen doelen in deze categorie.</p>
-                  </div>
-                ) : (
-                  filteredGoals.map((goal, index) => (
-                    <GoalCard 
-                      key={goal.id} 
-                      goal={goal}
-                      index={index}
-                      expanded={expandedGoals.has(goal.id)}
-                      onClick={() => setSelectedGoal(goal)}
-                      onQuickLog={handleQuickLog}
-                      onToggleStep={handleToggleStep}
-                      onToggleExpand={toggleExpanded}
-                      onMilestoneToggle={handleMilestoneToggle}
-                    />
-                  ))
-                )}
+                  activeTab === "savings" && "grid-cols-1 md:grid-cols-2",
+                  activeTab === "business" && "grid-cols-1 max-w-2xl mx-auto",
+                  activeTab === "casa" && "grid-cols-2 md:grid-cols-3",
+                  activeTab === "milestones" && "grid-cols-1 max-w-xl mx-auto",
+                  activeTab === "fun" && "grid-cols-2 md:grid-cols-4"
+                )}>
+                  {filteredGoals.length === 0 ? (
+                    <div className="col-span-full text-center py-16">
+                      <Sparkles className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
+                      <p className="text-muted-foreground">Geen doelen in deze categorie.</p>
+                    </div>
+                  ) : (
+                    filteredGoals.map((goal, index) => (
+                      <GoalCard 
+                        key={goal.id} 
+                        goal={goal}
+                        index={index}
+                        expanded={expandedGoals.has(goal.id)}
+                        onClick={() => setSelectedGoal(goal)}
+                        onQuickLog={handleQuickLog}
+                        onToggleStep={handleToggleStep}
+                        onToggleRoomItem={handleToggleRoomItem}
+                        onToggleExpand={toggleExpanded}
+                        onMilestoneToggle={handleMilestoneToggle}
+                      />
+                    ))
+                  )}
+                </div>
               </motion.div>
             </AnimatePresence>
           )}
         </main>
       </div>
-
-      <ActivityFeed isOpen={activityOpen} onClose={() => setActivityOpen(false)} />
 
       <GoalDetailSheet 
         goal={selectedGoal} 
@@ -156,12 +189,13 @@ interface GoalCardProps {
   expanded: boolean;
   onClick: () => void;
   onQuickLog: (e: React.MouseEvent, goal: Goal, value: number) => void;
-  onToggleStep: (e: React.MouseEvent, goal: Goal, stepIndex: number) => void;
+  onToggleStep: (e: React.MouseEvent, goal: Goal, stepIndex: number, substepIndex?: number) => void;
+  onToggleRoomItem: (e: React.MouseEvent, goal: Goal, itemIndex: number) => void;
   onToggleExpand: (e: React.MouseEvent, goalId: number) => void;
   onMilestoneToggle: (e: React.MouseEvent, goal: Goal) => void;
 }
 
-function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, onToggleExpand, onMilestoneToggle }: GoalCardProps) {
+function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, onToggleRoomItem, onToggleExpand, onMilestoneToggle }: GoalCardProps) {
   if (goal.category === 'lifestyle') {
     return <LifestyleCard goal={goal} index={index} onClick={onClick} onQuickLog={onQuickLog} />;
   }
@@ -172,7 +206,7 @@ function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, on
     return <BusinessCard goal={goal} index={index} expanded={expanded} onClick={onClick} onToggleStep={onToggleStep} onToggleExpand={onToggleExpand} />;
   }
   if (goal.category === 'casa') {
-    return <CasaCard goal={goal} index={index} onClick={onClick} />;
+    return <CasaCard goal={goal} index={index} expanded={expanded} onClick={onClick} onToggleRoomItem={onToggleRoomItem} onToggleExpand={onToggleExpand} />;
   }
   if (goal.category === 'milestones') {
     return <MilestoneCard goal={goal} index={index} onClick={onClick} onToggle={onMilestoneToggle} />;
@@ -187,19 +221,11 @@ function LifestyleCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index
   const percentage = goal.targetValue ? Math.min((goal.currentValue || 0) / goal.targetValue * 100, 100) : 0;
   const isLimit = goal.type === 'counter' && goal.targetValue;
   
-  let progressColor = "from-primary to-purple-500";
-  let statusText = "";
+  let progressColor = "bg-primary";
   if (isLimit) {
-    if (percentage > 90) {
-      progressColor = "from-red-500 to-rose-600";
-      statusText = "Limiet!";
-    } else if (percentage > 70) {
-      progressColor = "from-orange-400 to-amber-500";
-      statusText = "Let op";
-    } else {
-      progressColor = "from-emerald-400 to-green-500";
-      statusText = "Goed bezig";
-    }
+    if (percentage > 90) progressColor = "bg-red-500";
+    else if (percentage > 70) progressColor = "bg-orange-400";
+    else progressColor = "bg-emerald-500";
   }
 
   return (
@@ -207,68 +233,45 @@ function LifestyleCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      whileHover={{ y: -4, scale: 1.01 }}
       onClick={onClick}
-      className="glass-card p-5 flex flex-col justify-between min-h-[180px] cursor-pointer group"
+      className="bg-card rounded-2xl border border-border p-4 cursor-pointer hover:border-primary/30 transition-colors"
       data-testid={`card-goal-${goal.id}`}
     >
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3">
-          <motion.div 
-            className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center text-2xl shadow-sm"
-            whileHover={{ rotate: [0, -10, 10, 0] }}
-            transition={{ duration: 0.3 }}
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-2xl">{goal.icon || "✨"}</span>
+        <span className="font-medium text-sm flex-1 truncate">{goal.title}</span>
+      </div>
+      
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xl font-bold tabular-nums">
+          {goal.currentValue}
+          <span className="text-sm font-normal text-muted-foreground">/{goal.targetValue} {goal.unit}</span>
+        </span>
+        <div className="flex gap-1">
+          <button 
+            onClick={(e) => onQuickLog(e, goal, -1)}
+            className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center hover:bg-destructive/20 transition-colors"
+            data-testid={`button-minus-${goal.id}`}
           >
-            {goal.icon || "✨"}
-          </motion.div>
-          <div>
-            <h3 className="font-display font-bold text-base">{goal.title}</h3>
-            {statusText && (
-              <span className={cn(
-                "text-xs font-medium",
-                percentage > 90 ? "text-red-500" : percentage > 70 ? "text-orange-500" : "text-emerald-500"
-              )}>
-                {statusText}
-              </span>
-            )}
-          </div>
+            <Minus className="w-3 h-3" />
+          </button>
+          <button 
+            onClick={(e) => onQuickLog(e, goal, 1)}
+            className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors"
+            data-testid={`button-plus-${goal.id}`}
+          >
+            <Plus className="w-3 h-3" />
+          </button>
         </div>
       </div>
       
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-2xl font-display font-bold">
-            {goal.currentValue}
-            <span className="text-sm font-normal text-muted-foreground ml-1">
-              / {goal.targetValue || "∞"} {goal.unit}
-            </span>
-          </span>
-          <div className="flex gap-1">
-            <button 
-              onClick={(e) => onQuickLog(e, goal, -1)}
-              className="w-8 h-8 rounded-full bg-secondary text-muted-foreground flex items-center justify-center hover:bg-destructive/20 hover:text-destructive transition-colors"
-              data-testid={`button-minus-${goal.id}`}
-            >
-              <Minus className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={(e) => onQuickLog(e, goal, 1)}
-              className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors"
-              data-testid={`button-plus-${goal.id}`}
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-        
-        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-          <motion.div 
-            className={cn("h-full rounded-full bg-gradient-to-r", progressColor)} 
-            initial={{ width: 0 }}
-            animate={{ width: `${percentage}%` }}
-            transition={{ type: "spring", bounce: 0, duration: 0.8 }}
-          />
-        </div>
+      <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+        <motion.div 
+          className={cn("h-full rounded-full", progressColor)} 
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.5 }}
+        />
       </div>
     </motion.div>
   );
@@ -276,72 +279,47 @@ function LifestyleCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index
 
 function SavingsCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index: number; onClick: () => void; onQuickLog: (e: React.MouseEvent, goal: Goal, value: number) => void }) {
   const percentage = goal.targetValue ? Math.min((goal.currentValue || 0) / goal.targetValue * 100, 100) : 0;
-  const isComplete = percentage >= 100;
 
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      whileHover={{ y: -4 }}
       onClick={onClick}
-      className={cn(
-        "glass-card p-6 cursor-pointer relative overflow-hidden",
-        isComplete && "ring-2 ring-emerald-500/50"
-      )}
+      className="bg-card rounded-2xl border border-border p-5 cursor-pointer hover:border-emerald-500/30 transition-colors"
       data-testid={`card-goal-${goal.id}`}
     >
-      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 blur-3xl rounded-full -mr-16 -mt-16 pointer-events-none" />
-
-      <div className="flex items-center gap-4 mb-6">
-        <motion.div 
-          className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 p-3 rounded-2xl"
-          animate={isComplete ? { scale: [1, 1.1, 1] } : {}}
-          transition={{ repeat: isComplete ? Infinity : 0, duration: 2 }}
-        >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
           <span className="text-3xl">{goal.icon || "💰"}</span>
-        </motion.div>
-        <div className="flex-1">
-          <h3 className="font-display font-bold text-xl">{goal.title}</h3>
-          <p className={cn(
-            "font-medium text-sm",
-            isComplete ? "text-emerald-600" : percentage > 75 ? "text-emerald-500" : "text-muted-foreground"
-          )}>
-            {isComplete ? "Doel bereikt! 🎉" : percentage > 75 ? "Bijna daar!" : "Keep going!"}
-          </p>
+          <span className="font-semibold">{goal.title}</span>
         </div>
         <button 
           onClick={(e) => onQuickLog(e, goal, 50)}
-          className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors"
+          className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-colors"
           data-testid={`button-add-savings-${goal.id}`}
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex justify-between items-end">
-          <span className="text-3xl font-display font-bold">
-            €{(goal.currentValue || 0).toLocaleString()}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            van €{(goal.targetValue || 0).toLocaleString()}
-          </span>
+      <div className="space-y-2">
+        <div className="flex justify-between items-baseline">
+          <span className="text-2xl font-bold">€{(goal.currentValue || 0).toLocaleString()}</span>
+          <span className="text-sm text-muted-foreground">van €{(goal.targetValue || 0).toLocaleString()}</span>
         </div>
         
-        <div className="h-4 w-full bg-secondary rounded-full overflow-hidden p-0.5">
+        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
           <motion.div 
-            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 relative overflow-hidden"
+            className="h-full rounded-full bg-emerald-500"
             initial={{ width: 0 }}
             animate={{ width: `${percentage}%` }}
-            transition={{ type: "spring", bounce: 0, duration: 1.2 }}
-          >
-            <div className="absolute inset-0 animate-shimmer" />
-          </motion.div>
+            transition={{ duration: 0.8 }}
+          />
         </div>
         
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{Math.round(percentage)}% gespaard</span>
+          <span>{Math.round(percentage)}%</span>
           <span>€{((goal.targetValue || 0) - (goal.currentValue || 0)).toLocaleString()} te gaan</span>
         </div>
       </div>
@@ -349,12 +327,11 @@ function SavingsCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index: 
   );
 }
 
-function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleExpand }: { goal: Goal; index: number; expanded: boolean; onClick: () => void; onToggleStep: (e: React.MouseEvent, goal: Goal, stepIndex: number) => void; onToggleExpand: (e: React.MouseEvent, goalId: number) => void }) {
+function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleExpand }: { goal: Goal; index: number; expanded: boolean; onClick: () => void; onToggleStep: (e: React.MouseEvent, goal: Goal, stepIndex: number, substepIndex?: number) => void; onToggleExpand: (e: React.MouseEvent, goalId: number) => void }) {
   const metadata = goal.metadata as any;
   const steps = (metadata?.steps || []) as RoadmapStep[];
   const completedSteps = steps.filter(s => s.completed).length;
   const progress = steps.length > 0 ? (completedSteps / steps.length) * 100 : 0;
-  const nextStep = steps.find(s => !s.completed);
 
   return (
     <motion.div 
@@ -362,123 +339,107 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="glass-card overflow-hidden cursor-pointer"
+      className="bg-card rounded-2xl border border-border overflow-hidden"
       data-testid={`card-goal-${goal.id}`}
     >
-      <div 
-        className="p-5 border-b border-border/50"
-        onClick={onClick}
-      >
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-4 cursor-pointer" onClick={onClick}>
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{goal.icon || "🚀"}</span>
+            <span className="text-2xl">{goal.icon || "🚀"}</span>
             <div>
-              <h3 className="font-display font-bold text-lg">{goal.title}</h3>
-              <p className="text-xs text-muted-foreground">{completedSteps} van {steps.length} stappen</p>
+              <h3 className="font-semibold">{goal.title}</h3>
+              <p className="text-xs text-muted-foreground">{completedSteps}/{steps.length} stappen</p>
             </div>
           </div>
-          <div className="relative w-14 h-14">
-            <svg className="progress-ring w-14 h-14" viewBox="0 0 56 56">
-              <circle
-                className="text-secondary"
-                strokeWidth="4"
-                stroke="currentColor"
-                fill="transparent"
-                r="24"
-                cx="28"
-                cy="28"
-              />
-              <motion.circle
-                className="text-blue-500 progress-ring-circle"
-                strokeWidth="4"
-                stroke="currentColor"
-                fill="transparent"
-                r="24"
-                cx="28"
-                cy="28"
-                strokeLinecap="round"
-                initial={{ strokeDashoffset: 150.8 }}
-                animate={{ strokeDashoffset: 150.8 - (150.8 * progress / 100) }}
-                style={{ strokeDasharray: 150.8 }}
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-blue-500">
-              {Math.round(progress)}%
-            </span>
-          </div>
+          <span className="text-lg font-bold text-blue-500">{Math.round(progress)}%</span>
         </div>
-
-        {nextStep && (
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-              Volgende: {nextStep.title}
-            </span>
-          </div>
-        )}
+        
+        <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+          <motion.div 
+            className="h-full rounded-full bg-blue-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
 
-      <div className="px-5 py-3">
+      <div className="border-t border-border">
         <button
           onClick={(e) => onToggleExpand(e, goal.id)}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
           data-testid={`button-expand-${goal.id}`}
         >
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          <span>{expanded ? "Verberg stappen" : "Toon alle stappen"}</span>
+          <span>{expanded ? "Verberg" : "Toon stappen"}</span>
         </button>
       </div>
 
       <AnimatePresence>
         {expanded && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            initial={{ height: 0 }}
+            animate={{ height: "auto" }}
+            exit={{ height: 0 }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5 space-y-2">
+            <div className="px-4 pb-4 space-y-2">
               {steps.map((step, idx) => (
-                <motion.div 
-                  key={idx}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.03 }}
-                  onClick={(e) => onToggleStep(e, goal, idx)}
-                  className={cn(
-                    "flex items-start gap-3 p-3 rounded-xl transition-colors cursor-pointer",
-                    step.completed 
-                      ? "bg-emerald-500/10 border border-emerald-500/20" 
-                      : "bg-secondary/50 hover:bg-secondary"
-                  )}
-                  data-testid={`step-${goal.id}-${idx}`}
-                >
-                  <div className={cn(
-                    "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all mt-0.5",
-                    step.completed 
-                      ? "bg-emerald-500 border-emerald-500 text-white" 
-                      : "border-muted-foreground/30 hover:border-blue-500"
-                  )}>
-                    {step.completed && <Check className="w-4 h-4" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
+                <div key={idx} className="space-y-1">
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.03 }}
+                    onClick={(e) => onToggleStep(e, goal, idx)}
+                    className={cn(
+                      "flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors",
+                      step.completed ? "bg-emerald-500/10" : "bg-secondary/50 hover:bg-secondary"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
+                      step.completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30"
+                    )}>
+                      {step.completed && <Check className="w-3 h-3" />}
+                    </div>
                     <span className={cn(
-                      "text-sm font-medium block",
+                      "text-sm font-medium flex-1",
                       step.completed && "text-emerald-600 dark:text-emerald-400"
                     )}>
                       {idx + 1}. {step.title}
                     </span>
-                    {step.notes && (
-                      <p className="text-xs text-muted-foreground mt-1 truncate">{step.notes}</p>
+                    {step.substeps && step.substeps.length > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {step.substeps.filter(s => s.completed).length}/{step.substeps.length}
+                      </span>
                     )}
-                  </div>
-                  {step.blocked && (
-                    <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 px-2 py-0.5 rounded-full">
-                      Blocked
-                    </span>
+                  </motion.div>
+                  
+                  {step.substeps && step.substeps.length > 0 && (
+                    <div className="ml-8 space-y-1">
+                      {step.substeps.map((substep, subIdx) => (
+                        <motion.div
+                          key={subIdx}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: (idx * 0.03) + (subIdx * 0.02) }}
+                          onClick={(e) => onToggleStep(e, goal, idx, subIdx)}
+                          className={cn(
+                            "flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors text-sm",
+                            substep.completed ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-4 h-4 rounded border flex items-center justify-center shrink-0",
+                            substep.completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30"
+                          )}>
+                            {substep.completed && <Check className="w-2.5 h-2.5" />}
+                          </div>
+                          <span>{substep.title}</span>
+                        </motion.div>
+                      ))}
+                    </div>
                   )}
-                </motion.div>
+                </div>
               ))}
             </div>
           </motion.div>
@@ -488,54 +449,93 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
   );
 }
 
-function CasaCard({ goal, index, onClick }: { goal: Goal; index: number; onClick: () => void }) {
+function CasaCard({ goal, index, expanded, onClick, onToggleRoomItem, onToggleExpand }: { goal: Goal; index: number; expanded: boolean; onClick: () => void; onToggleRoomItem: (e: React.MouseEvent, goal: Goal, itemIndex: number) => void; onToggleExpand: (e: React.MouseEvent, goalId: number) => void }) {
   const metadata = goal.metadata as any;
-  const items = (metadata?.items || []) as { label: string; completed: boolean }[];
+  const items = (metadata?.items || []) as RoomItem[];
   const completedCount = items.filter(i => i.completed).length;
-  const progress = items.length > 0 ? (completedCount / items.length) * 100 : (goal.currentValue || 0);
+  const progress = items.length > 0 ? (completedCount / items.length) * 100 : 0;
   const isComplete = progress >= 100;
 
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }}
+      layout
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05 }}
-      whileHover={{ y: -4, scale: 1.02 }}
-      onClick={onClick}
       className={cn(
-        "glass-card p-4 cursor-pointer flex flex-col items-center text-center aspect-square justify-center relative group",
-        isComplete && "ring-2 ring-emerald-500/50"
+        "bg-card rounded-2xl border overflow-hidden cursor-pointer",
+        isComplete ? "border-emerald-500/50" : "border-border hover:border-orange-500/30"
       )}
       data-testid={`card-goal-${goal.id}`}
     >
-      <div className="absolute top-0 left-0 right-0 h-1 bg-secondary rounded-t-3xl overflow-hidden">
-        <motion.div 
-          className={cn(
-            "h-full",
-            isComplete ? "bg-emerald-500" : "bg-orange-500"
-          )}
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.5, delay: index * 0.05 }}
-        />
+      <div className="p-4" onClick={(e) => onToggleExpand(e, goal.id)}>
+        <div className="flex flex-col items-center text-center">
+          <motion.span 
+            className="text-3xl mb-2"
+            animate={isComplete ? { scale: [1, 1.1, 1] } : {}}
+            transition={{ repeat: isComplete ? Infinity : 0, duration: 2 }}
+          >
+            {goal.icon || "🏠"}
+          </motion.span>
+          <h3 className="font-semibold text-sm mb-1">{goal.title}</h3>
+          <span className={cn(
+            "text-xs font-medium px-2 py-0.5 rounded-full",
+            isComplete 
+              ? "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400" 
+              : "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-400"
+          )}>
+            {completedCount}/{items.length}
+          </span>
+        </div>
+        
+        <div className="mt-3 h-1 w-full bg-secondary rounded-full overflow-hidden">
+          <motion.div 
+            className={cn("h-full rounded-full", isComplete ? "bg-emerald-500" : "bg-orange-500")}
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
 
-      <motion.div 
-        className="text-4xl mb-3"
-        animate={isComplete ? { scale: [1, 1.2, 1] } : {}}
-        transition={{ repeat: isComplete ? Infinity : 0, duration: 2 }}
-      >
-        {goal.icon || "🏠"}
-      </motion.div>
-      <h3 className="font-display font-bold text-sm mb-2">{goal.title}</h3>
-      <span className={cn(
-        "text-xs px-2 py-1 rounded-full font-medium",
-        isComplete 
-          ? "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400" 
-          : "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-400"
-      )}>
-        {items.length > 0 ? `${completedCount}/${items.length}` : `${Math.round(progress)}%`}
-      </span>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: "auto" }}
+            exit={{ height: 0 }}
+            className="overflow-hidden border-t border-border"
+          >
+            <div className="p-3 space-y-1.5">
+              {items.map((item, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.03 }}
+                  onClick={(e) => onToggleRoomItem(e, goal, idx)}
+                  className={cn(
+                    "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors text-sm",
+                    item.completed ? "bg-emerald-500/10" : "hover:bg-secondary"
+                  )}
+                >
+                  <div className={cn(
+                    "w-4 h-4 rounded border flex items-center justify-center shrink-0",
+                    item.completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30"
+                  )}>
+                    {item.completed && <Check className="w-2.5 h-2.5" />}
+                  </div>
+                  <span className={cn(
+                    "flex-1 truncate",
+                    item.completed && "text-emerald-600 dark:text-emerald-400 line-through"
+                  )}>
+                    {item.title}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -547,27 +547,23 @@ function MilestoneCard({ goal, index, onClick, onToggle }: { goal: Goal; index: 
     <motion.div 
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.1 }}
+      transition={{ delay: index * 0.08 }}
       onClick={onClick}
       className={cn(
-        "glass-card p-5 cursor-pointer flex items-center gap-5 relative overflow-hidden",
-        isCompleted && "bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20"
+        "bg-card rounded-2xl border p-4 cursor-pointer flex items-center gap-4",
+        isCompleted ? "border-amber-500/50 bg-amber-50/50 dark:bg-amber-900/10" : "border-border hover:border-primary/30"
       )}
       data-testid={`card-goal-${goal.id}`}
     >
-      {isCompleted && (
-        <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 blur-3xl rounded-full -mr-8 -mt-8" />
-      )}
-      
       <motion.button
         onClick={(e) => onToggle(e, goal)}
         className={cn(
-          "w-14 h-14 rounded-full flex items-center justify-center text-3xl shrink-0 transition-all",
+          "w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0 transition-all",
           isCompleted 
-            ? "bg-gradient-to-br from-amber-400 to-yellow-500 shadow-lg shadow-yellow-500/30" 
-            : "bg-secondary text-muted-foreground grayscale hover:grayscale-0 hover:bg-secondary/80"
+            ? "bg-gradient-to-br from-amber-400 to-yellow-500 shadow-md" 
+            : "bg-secondary grayscale hover:grayscale-0"
         )}
-        whileHover={{ scale: 1.1 }}
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         data-testid={`button-toggle-milestone-${goal.id}`}
       >
@@ -575,21 +571,17 @@ function MilestoneCard({ goal, index, onClick, onToggle }: { goal: Goal; index: 
       </motion.button>
       
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="font-display font-bold text-lg truncate">{goal.title}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold truncate">{goal.title}</h3>
           {isCompleted && (
-            <motion.span 
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="text-xs bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold shrink-0"
-            >
-              VOLTOOID
-            </motion.span>
+            <span className="text-xs bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-medium shrink-0">
+              Done
+            </span>
           )}
         </div>
-        <p className="text-sm text-muted-foreground truncate">
-          {goal.unit || (isCompleted ? "Gefeliciteerd!" : "Nog niet gestart")}
-        </p>
+        {goal.unit && (
+          <p className="text-sm text-muted-foreground truncate">{goal.unit}</p>
+        )}
       </div>
     </motion.div>
   );
@@ -598,43 +590,38 @@ function MilestoneCard({ goal, index, onClick, onToggle }: { goal: Goal; index: 
 function FunCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index: number; onClick: () => void; onQuickLog: (e: React.MouseEvent, goal: Goal, value: number) => void }) {
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
-      animate={{ opacity: 1, scale: 1, rotate: 0 }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05, type: "spring" }}
-      whileHover={{ scale: 1.03, rotate: 1 }}
       onClick={onClick}
-      className="glass-card p-5 flex flex-col items-center justify-center text-center aspect-square cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 relative group"
+      className="bg-card rounded-2xl border border-border p-4 flex flex-col items-center text-center cursor-pointer hover:border-purple-500/30 transition-colors group"
       data-testid={`card-goal-${goal.id}`}
     >
       <motion.span 
-        className="text-4xl mb-3"
-        animate={{ y: [0, -5, 0] }}
-        transition={{ repeat: Infinity, duration: 2, delay: index * 0.2 }}
+        className="text-3xl mb-2"
+        animate={{ y: [0, -3, 0] }}
+        transition={{ repeat: Infinity, duration: 3, delay: index * 0.3 }}
       >
         {goal.icon || "🎈"}
       </motion.span>
-      <h3 className="font-display font-semibold text-sm text-muted-foreground mb-1">{goal.title}</h3>
       <motion.span 
-        className="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600"
+        className="text-3xl font-bold text-purple-600 dark:text-purple-400 tabular-nums"
         key={goal.currentValue}
         initial={{ scale: 1.2 }}
         animate={{ scale: 1 }}
       >
         {(goal.currentValue || 0).toLocaleString()}
       </motion.span>
-      <span className="text-xs text-purple-500 mt-1 uppercase tracking-wider font-bold">
-        {goal.unit}
-      </span>
+      <span className="text-xs text-muted-foreground mt-1">{goal.unit}</span>
+      <span className="text-xs font-medium text-muted-foreground mt-2 truncate w-full">{goal.title}</span>
       
-      <motion.button
+      <button
         onClick={(e) => onQuickLog(e, goal, 1)}
-        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 dark:bg-black/20 text-purple-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
+        className="mt-3 w-6 h-6 rounded-full bg-purple-500/10 text-purple-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
         data-testid={`button-plus-${goal.id}`}
       >
-        <Plus className="w-4 h-4" />
-      </motion.button>
+        <Plus className="w-3 h-3" />
+      </button>
     </motion.div>
   );
 }
