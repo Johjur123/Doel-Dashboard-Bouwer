@@ -34,14 +34,29 @@ const goalColors = [
   { value: "yellow", label: "Geel" },
 ] as const;
 
+const parseTargetValue = z.preprocess(
+  (val) => {
+    if (val === "" || val === undefined || val === null) return undefined;
+    const num = Number(val);
+    return Number.isNaN(num) ? undefined : num;
+  },
+  z.number().min(1, "Doelwaarde moet minimaal 1 zijn").optional()
+);
+
 const createGoalSchema = z.object({
   title: z.string().min(1, "Titel is vereist"),
   type: z.enum(["counter", "progress", "boolean"]),
-  targetValue: z.coerce.number().optional(),
+  targetValue: parseTargetValue,
   unit: z.string().optional(),
   color: z.string().default("blue"),
   resetPeriod: z.enum(["none", "weekly", "monthly"]).default("none"),
-});
+}).refine(
+  (data) => data.type === "boolean" || (data.targetValue !== undefined && data.targetValue >= 1),
+  {
+    message: "Doelwaarde is vereist voor teller- en voortgangsdoelen",
+    path: ["targetValue"],
+  }
+);
 
 type CreateGoalValues = z.infer<typeof createGoalSchema>;
 
@@ -74,7 +89,7 @@ export function CreateGoalDialog({ category }: CreateGoalDialogProps) {
       category,
       type: data.type,
       currentValue: 0,
-      targetValue: data.type === "boolean" ? 1 : data.targetValue || null,
+      targetValue: data.type === "boolean" ? 1 : data.targetValue,
       unit: data.unit || null,
       color: data.color,
       resetPeriod: data.resetPeriod,

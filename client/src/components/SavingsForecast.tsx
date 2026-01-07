@@ -1,6 +1,4 @@
-import { useGoals } from "@/hooks/use-goals";
-import { useQuery } from "@tanstack/react-query";
-import { Log } from "@shared/schema";
+import { useGoals, useAllLogs } from "@/hooks/use-goals";
 import { motion } from "framer-motion";
 import { Plane, MapPin, TrendingUp, Calendar, Target, CircleDollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,7 +7,7 @@ import { nl } from "date-fns/locale";
 
 export function SavingsForecast() {
   const { data: goals } = useGoals();
-  const { data: logs } = useQuery<Log[]>({ queryKey: ["/api/logs"] });
+  const { data: logs } = useAllLogs();
 
   const savingsGoals = goals?.filter(g => 
     g.category === "savings" && 
