@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import { InsertGoal, InsertLog, InsertUserProfile } from "@shared/schema";
+import { InsertGoal, InsertLog, InsertUserProfile, Activity } from "@shared/schema";
 
 export function useGoals() {
   return useQuery({
@@ -116,6 +116,17 @@ export function useUpdateUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+    },
+  });
+}
+
+export function useActivities() {
+  return useQuery<Activity[]>({
+    queryKey: [api.activity.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.activity.list.path);
+      if (!res.ok) throw new Error("Failed to fetch activities");
+      return api.activity.list.responses[200].parse(await res.json());
     },
   });
 }

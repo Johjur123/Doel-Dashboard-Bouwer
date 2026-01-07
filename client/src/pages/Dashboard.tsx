@@ -5,6 +5,7 @@ import { GoalDetailSheet } from "@/components/GoalDetailSheet";
 import { PixelHouse } from "@/components/PixelHouse";
 import { Confetti, useConfetti } from "@/components/Confetti";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useToast } from "@/hooks/use-toast";
 import { Goal, RoadmapStep, RoomItem } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Check, ChevronDown, ChevronUp, Minus, Sparkles, ArrowLeft, Trash2 } from "lucide-react";
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const category = params.category || "lifestyle";
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [expandedGoals, setExpandedGoals] = useState<Set<number>>(new Set());
+  const { toast } = useToast();
   
   const { data: goals, isLoading } = useGoals();
   const createLog = useCreateLog();
@@ -45,6 +47,20 @@ export default function Dashboard() {
       goalId: goal.id, 
       value: value,
       note: value > 0 ? "Quick add" : "Quick subtract" 
+    }, {
+      onSuccess: () => {
+        toast({
+          title: value > 0 ? "Toegevoegd" : "Afgetrokken",
+          description: `${Math.abs(value)} ${goal.unit || "eenheden"} ${value > 0 ? "toegevoegd aan" : "afgetrokken van"} ${goal.title}`,
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Fout",
+          description: "Kon wijziging niet opslaan",
+          variant: "destructive",
+        });
+      }
     });
   };
 
@@ -70,10 +86,31 @@ export default function Dashboard() {
     
     const completedCount = steps.filter(s => s.completed).length;
     
+    const stepTitle = substepIndex !== undefined 
+      ? steps[stepIndex].substeps?.[substepIndex]?.title 
+      : steps[stepIndex].title;
+    const isCompleting = substepIndex !== undefined 
+      ? steps[stepIndex].substeps?.[substepIndex]?.completed 
+      : steps[stepIndex].completed;
+      
     updateGoal.mutate({ 
       id: goal.id, 
       currentValue: completedCount,
       metadata: { ...metadata, steps } 
+    }, {
+      onSuccess: () => {
+        toast({
+          title: isCompleting ? "Afgerond" : "Heropend",
+          description: stepTitle,
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Fout",
+          description: "Kon wijziging niet opslaan",
+          variant: "destructive",
+        });
+      }
     });
   };
 
@@ -83,6 +120,7 @@ export default function Dashboard() {
     
     const metadata = goal.metadata as any;
     const items = [...(metadata.items as RoomItem[])];
+    const wasCompleted = items[itemIndex].completed;
     items[itemIndex].completed = !items[itemIndex].completed;
     
     const completedCount = items.filter(i => i.completed).length;
@@ -91,9 +129,23 @@ export default function Dashboard() {
       id: goal.id, 
       currentValue: completedCount,
       metadata: { ...metadata, items } 
+    }, {
+      onSuccess: () => {
+        toast({
+          title: !wasCompleted ? "Afgerond" : "Heropend",
+          description: items[itemIndex].title,
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Fout",
+          description: "Kon wijziging niet opslaan",
+          variant: "destructive",
+        });
+      }
     });
 
-    if (!items[itemIndex].completed === false && completedCount === items.length) {
+    if (!wasCompleted && completedCount === items.length) {
       confetti.trigger();
     }
   };
@@ -106,6 +158,13 @@ export default function Dashboard() {
       id: goal.id,
       targetValue: items.length,
       metadata: { ...metadata, items },
+    }, {
+      onSuccess: () => {
+        toast({ title: "Item toegevoegd", description: title.trim() });
+      },
+      onError: () => {
+        toast({ title: "Fout", description: "Kon item niet toevoegen", variant: "destructive" });
+      }
     });
   };
 
@@ -113,6 +172,7 @@ export default function Dashboard() {
     e.stopPropagation();
     if (!goal.metadata) return;
     const metadata = goal.metadata as any;
+    const removedTitle = (metadata.items as RoomItem[])[itemIndex]?.title;
     const items = (metadata.items as RoomItem[]).filter((_, i) => i !== itemIndex);
     const completedCount = items.filter(i => i.completed).length;
     updateGoal.mutate({
@@ -120,6 +180,13 @@ export default function Dashboard() {
       currentValue: completedCount,
       targetValue: items.length,
       metadata: { ...metadata, items },
+    }, {
+      onSuccess: () => {
+        toast({ title: "Item verwijderd", description: removedTitle });
+      },
+      onError: () => {
+        toast({ title: "Fout", description: "Kon item niet verwijderen", variant: "destructive" });
+      }
     });
   };
 
@@ -131,6 +198,13 @@ export default function Dashboard() {
       id: goal.id,
       targetValue: steps.length,
       metadata: { ...metadata, steps },
+    }, {
+      onSuccess: () => {
+        toast({ title: "Stap toegevoegd", description: title.trim() });
+      },
+      onError: () => {
+        toast({ title: "Fout", description: "Kon stap niet toevoegen", variant: "destructive" });
+      }
     });
   };
 
@@ -138,6 +212,7 @@ export default function Dashboard() {
     e.stopPropagation();
     if (!goal.metadata) return;
     const metadata = goal.metadata as any;
+    const removedTitle = (metadata.steps as RoadmapStep[])[stepIndex]?.title;
     const steps = (metadata.steps as RoadmapStep[]).filter((_, i) => i !== stepIndex);
     const completedCount = steps.filter(s => s.completed).length;
     updateGoal.mutate({
@@ -145,6 +220,13 @@ export default function Dashboard() {
       currentValue: completedCount,
       targetValue: steps.length,
       metadata: { ...metadata, steps },
+    }, {
+      onSuccess: () => {
+        toast({ title: "Stap verwijderd", description: removedTitle });
+      },
+      onError: () => {
+        toast({ title: "Fout", description: "Kon stap niet verwijderen", variant: "destructive" });
+      }
     });
   };
 
@@ -157,6 +239,13 @@ export default function Dashboard() {
     updateGoal.mutate({
       id: goal.id,
       metadata: { ...metadata, steps },
+    }, {
+      onSuccess: () => {
+        toast({ title: "Substap toegevoegd", description: title.trim() });
+      },
+      onError: () => {
+        toast({ title: "Fout", description: "Kon substap niet toevoegen", variant: "destructive" });
+      }
     });
   };
 
@@ -164,12 +253,20 @@ export default function Dashboard() {
     e.stopPropagation();
     if (!goal.metadata) return;
     const metadata = goal.metadata as any;
+    const removedTitle = (metadata.steps as RoadmapStep[])[stepIndex]?.substeps?.[substepIndex]?.title;
     const steps = [...(metadata.steps as RoadmapStep[])];
     const substeps = steps[stepIndex].substeps?.filter((_, i) => i !== substepIndex) || [];
     steps[stepIndex] = { ...steps[stepIndex], substeps };
     updateGoal.mutate({
       id: goal.id,
       metadata: { ...metadata, steps },
+    }, {
+      onSuccess: () => {
+        toast({ title: "Substap verwijderd", description: removedTitle });
+      },
+      onError: () => {
+        toast({ title: "Fout", description: "Kon substap niet verwijderen", variant: "destructive" });
+      }
     });
   };
 
@@ -189,7 +286,21 @@ export default function Dashboard() {
   const handleMilestoneToggle = (e: React.MouseEvent, goal: Goal) => {
     e.stopPropagation();
     const newValue = (goal.currentValue || 0) >= 1 ? 0 : 1;
-    updateGoal.mutate({ id: goal.id, currentValue: newValue });
+    updateGoal.mutate({ id: goal.id, currentValue: newValue }, {
+      onSuccess: () => {
+        toast({
+          title: newValue === 1 ? "Mijlpaal behaald!" : "Mijlpaal heropend",
+          description: goal.title,
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Fout",
+          description: "Kon mijlpaal niet bijwerken",
+          variant: "destructive",
+        });
+      }
+    });
     if (newValue === 1) {
       confetti.trigger();
     }

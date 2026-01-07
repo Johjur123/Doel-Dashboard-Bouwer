@@ -1,5 +1,10 @@
 import { useGoals } from "@/hooks/use-goals";
 import { PixelHouse } from "@/components/PixelHouse";
+import { CouplesProfile } from "@/components/CouplesProfile";
+import { ActivityFeed } from "@/components/ActivityFeed";
+import { SavingsForecast } from "@/components/SavingsForecast";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { 
@@ -10,7 +15,7 @@ import {
   Trophy, 
   Sparkles,
   ChevronRight,
-  TrendingUp
+  Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
@@ -73,82 +78,108 @@ export default function Home() {
   const relationshipStart = new Date(2020, 9, 2);
   const daysTogether = differenceInDays(new Date(), relationshipStart);
 
-  const savingsGoals = goals?.filter(g => g.category === "savings") || [];
-  const totalSaved = savingsGoals.reduce((sum, g) => sum + (g.currentValue || 0), 0);
-  const totalTarget = savingsGoals.reduce((sum, g) => sum + (g.targetValue || 0), 0);
-
   const milestoneGoals = goals?.filter(g => g.category === "milestones") || [];
   const completedMilestones = milestoneGoals.filter(g => (g.currentValue || 0) >= 1).length;
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+          <div className="flex justify-end">
+            <div className="w-9 h-9 rounded-xl bg-muted animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div className="h-12 bg-muted rounded-lg animate-pulse mx-auto w-48" />
+            <div className="h-6 bg-muted rounded-lg animate-pulse mx-auto w-64" />
+          </div>
+          <div className="flex justify-center">
+            <div className="w-48 h-48 bg-muted rounded-2xl animate-pulse" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-24 bg-muted rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-        <header className="text-center space-y-2">
+      <div className="max-w-4xl mx-auto px-4 py-6 md:py-8 space-y-6 md:space-y-8">
+        <header className="flex items-center justify-between">
+          <div className="w-9" />
+          <CouplesProfile />
+          <ThemeToggle />
+        </header>
+
+        <div className="text-center space-y-1">
           <motion.h1 
-            className="text-3xl md:text-4xl font-bold gradient-text"
+            className="text-2xl md:text-3xl font-bold gradient-text"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
           >
             Onze Doelen
           </motion.h1>
           <motion.p 
-            className="text-muted-foreground"
+            className="text-sm text-muted-foreground"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
           >
             Samen bouwen aan onze toekomst
           </motion.p>
-        </header>
+        </div>
 
         <motion.div 
-          className="flex flex-col md:flex-row items-center justify-center gap-8"
+          className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
         >
           <div className="relative">
-            <PixelHouse progress={casaProgress} className="w-40 h-40 md:w-48 md:h-48" />
+            <PixelHouse progress={casaProgress} className="w-36 h-36 md:w-44 md:h-44" />
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-medium whitespace-nowrap">
               Casa Hörnig {Math.round(casaProgress)}%
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="grid grid-cols-2 gap-3 text-center w-full md:w-auto">
             <motion.div 
-              className="bg-card rounded-2xl border border-border p-4"
+              className="bg-card rounded-2xl border border-border p-3 md:p-4"
               whileHover={{ scale: 1.02 }}
             >
-              <div className="text-3xl font-bold text-rose-500">{daysTogether}</div>
+              <div className="text-2xl md:text-3xl font-bold text-rose-500">{daysTogether}</div>
               <div className="text-xs text-muted-foreground mt-1">dagen samen</div>
             </motion.div>
             <motion.div 
-              className="bg-card rounded-2xl border border-border p-4"
+              className="bg-card rounded-2xl border border-border p-3 md:p-4"
               whileHover={{ scale: 1.02 }}
             >
-              <div className="text-3xl font-bold text-emerald-500">
-                {totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0}%
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">gespaard</div>
-            </motion.div>
-            <motion.div 
-              className="bg-card rounded-2xl border border-border p-4"
-              whileHover={{ scale: 1.02 }}
-            >
-              <div className="text-3xl font-bold text-amber-500">{completedMilestones}/{milestoneGoals.length}</div>
+              <div className="text-2xl md:text-3xl font-bold text-amber-500">{completedMilestones}/{milestoneGoals.length}</div>
               <div className="text-xs text-muted-foreground mt-1">mijlpalen</div>
-            </motion.div>
-            <motion.div 
-              className="bg-card rounded-2xl border border-border p-4"
-              whileHover={{ scale: 1.02 }}
-            >
-              <div className="flex items-center justify-center gap-1 text-3xl font-bold text-blue-500">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">on track</div>
             </motion.div>
           </div>
         </motion.div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Wallet className="w-4 h-4 text-emerald-500" />
+              <h3 className="font-semibold text-sm">Spaarprognose</h3>
+            </div>
+            <SavingsForecast />
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="w-4 h-4 text-blue-500" />
+              <h3 className="font-semibold text-sm">Recente Activiteit</h3>
+            </div>
+            <ActivityFeed />
+          </Card>
+        </div>
 
         <div className="space-y-3">
           <h2 className="text-lg font-semibold px-1">Categorieën</h2>
@@ -168,16 +199,16 @@ export default function Home() {
                   >
                     <div className="flex items-center gap-4">
                       <div className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center",
+                        "w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0",
                         cat.bg
                       )}>
-                        <Icon className={cn("w-6 h-6", cat.color)} />
+                        <Icon className={cn("w-5 h-5 md:w-6 md:h-6", cat.color)} />
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold">{cat.label}</span>
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between mb-1 gap-2">
+                          <span className="font-semibold text-sm md:text-base">{cat.label}</span>
+                          <div className="flex items-center gap-2 shrink-0">
                             <span className="text-sm text-muted-foreground">
                               {progress.percentage}%
                             </span>
