@@ -1,17 +1,28 @@
 import { useState } from "react";
+import { useParams, Link } from "wouter";
 import { useGoals, useCreateLog, useUpdateGoal } from "@/hooks/use-goals";
-import { Header } from "@/components/Header";
-import { Navigation } from "@/components/Navigation";
 import { GoalDetailSheet } from "@/components/GoalDetailSheet";
 import { PixelHouse } from "@/components/PixelHouse";
 import { Confetti, useConfetti } from "@/components/Confetti";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Goal, RoadmapStep, RoomItem } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Check, ChevronDown, ChevronUp, Minus, Sparkles } from "lucide-react";
+import { Plus, Check, ChevronDown, ChevronUp, Minus, Sparkles, ArrowLeft, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { differenceInDays } from "date-fns";
+
+const categoryInfo: Record<string, { label: string; color: string; gradient: string }> = {
+  lifestyle: { label: "Lifestyle", color: "text-rose-500", gradient: "from-rose-500 to-pink-500" },
+  savings: { label: "Sparen", color: "text-emerald-500", gradient: "from-emerald-500 to-teal-500" },
+  business: { label: "Business", color: "text-blue-500", gradient: "from-blue-500 to-indigo-500" },
+  casa: { label: "Casa Hörnig", color: "text-orange-500", gradient: "from-orange-500 to-amber-500" },
+  milestones: { label: "Mijlpalen", color: "text-yellow-500", gradient: "from-yellow-500 to-orange-500" },
+  fun: { label: "Fun", color: "text-purple-500", gradient: "from-purple-500 to-pink-500" },
+};
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("lifestyle");
+  const params = useParams<{ category: string }>();
+  const category = params.category || "lifestyle";
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [expandedGoals, setExpandedGoals] = useState<Set<number>>(new Set());
   
@@ -20,11 +31,13 @@ export default function Dashboard() {
   const updateGoal = useUpdateGoal();
   const confetti = useConfetti();
 
-  const filteredGoals = goals?.filter(g => g.category === activeTab) || [];
+  const filteredGoals = goals?.filter(g => g.category === category) || [];
   const casaGoals = goals?.filter(g => g.category === "casa") || [];
   const casaProgress = casaGoals.length > 0 
     ? casaGoals.reduce((sum, g) => sum + (g.currentValue || 0), 0) / casaGoals.reduce((sum, g) => sum + (g.targetValue || 100), 0) * 100
     : 0;
+
+  const info = categoryInfo[category] || categoryInfo.lifestyle;
 
   const handleQuickLog = (e: React.MouseEvent, goal: Goal, value: number) => {
     e.stopPropagation();
@@ -110,11 +123,24 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <Confetti active={confetti.isActive} onComplete={confetti.reset} />
-      <Header />
       
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-        
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/">
+              <button className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors" data-testid="button-back">
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            </Link>
+            <h1 className={cn("text-xl font-bold bg-gradient-to-r bg-clip-text text-transparent", info.gradient)}>
+              {info.label}
+            </h1>
+          </div>
+          <ThemeToggle />
+        </div>
+      </header>
+      
+      <div className="max-w-4xl mx-auto px-4 py-6">
         <main className="pb-8">
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -125,13 +151,13 @@ export default function Dashboard() {
           ) : (
             <AnimatePresence mode="wait">
               <motion.div
-                key={activeTab}
+                key={category}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                {activeTab === "casa" && (
+                {category === "casa" && (
                   <div className="mb-8 flex justify-center">
                     <PixelHouse progress={casaProgress} className="w-48 h-48" />
                   </div>
@@ -139,12 +165,12 @@ export default function Dashboard() {
                 
                 <div className={cn(
                   "grid gap-4",
-                  activeTab === "lifestyle" && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-                  activeTab === "savings" && "grid-cols-1 md:grid-cols-2",
-                  activeTab === "business" && "grid-cols-1 max-w-2xl mx-auto",
-                  activeTab === "casa" && "grid-cols-2 md:grid-cols-3",
-                  activeTab === "milestones" && "grid-cols-1 max-w-xl mx-auto",
-                  activeTab === "fun" && "grid-cols-2 md:grid-cols-4"
+                  category === "lifestyle" && "grid-cols-1 sm:grid-cols-2",
+                  category === "savings" && "grid-cols-1 md:grid-cols-2",
+                  category === "business" && "grid-cols-1",
+                  category === "casa" && "grid-cols-2 md:grid-cols-3",
+                  category === "milestones" && "grid-cols-1",
+                  category === "fun" && "grid-cols-2 md:grid-cols-4"
                 )}>
                   {filteredGoals.length === 0 ? (
                     <div className="col-span-full text-center py-16">
@@ -212,7 +238,7 @@ function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, on
     return <MilestoneCard goal={goal} index={index} onClick={onClick} onToggle={onMilestoneToggle} />;
   }
   if (goal.category === 'fun') {
-    return <FunCard goal={goal} index={index} onClick={onClick} onQuickLog={onQuickLog} />;
+    return <FunCard goal={goal} index={index} onClick={onClick} />;
   }
   return null;
 }
@@ -587,7 +613,13 @@ function MilestoneCard({ goal, index, onClick, onToggle }: { goal: Goal; index: 
   );
 }
 
-function FunCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index: number; onClick: () => void; onQuickLog: (e: React.MouseEvent, goal: Goal, value: number) => void }) {
+function FunCard({ goal, index, onClick }: { goal: Goal; index: number; onClick: () => void }) {
+  const relationshipStart = new Date(2020, 9, 2);
+  const isAutoCalculated = goal.title.toLowerCase().includes("dagen samen");
+  const displayValue = isAutoCalculated 
+    ? differenceInDays(new Date(), relationshipStart)
+    : (goal.currentValue || 0);
+
   return (
     <motion.div 
       initial={{ opacity: 0, scale: 0.9 }}
@@ -606,22 +638,14 @@ function FunCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index: numb
       </motion.span>
       <motion.span 
         className="text-3xl font-bold text-purple-600 dark:text-purple-400 tabular-nums"
-        key={goal.currentValue}
+        key={displayValue}
         initial={{ scale: 1.2 }}
         animate={{ scale: 1 }}
       >
-        {(goal.currentValue || 0).toLocaleString()}
+        {displayValue.toLocaleString()}
       </motion.span>
       <span className="text-xs text-muted-foreground mt-1">{goal.unit}</span>
       <span className="text-xs font-medium text-muted-foreground mt-2 truncate w-full">{goal.title}</span>
-      
-      <button
-        onClick={(e) => onQuickLog(e, goal, 1)}
-        className="mt-3 w-6 h-6 rounded-full bg-purple-500/10 text-purple-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-        data-testid={`button-plus-${goal.id}`}
-      >
-        <Plus className="w-3 h-3" />
-      </button>
     </motion.div>
   );
 }
