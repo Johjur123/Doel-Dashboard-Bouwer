@@ -253,6 +253,41 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
               </div>
             )}
 
+            {goal.resetPeriod && goal.resetPeriod !== "none" && (
+              <div className="bg-card rounded-xl border border-border p-4 space-y-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {goal.resetPeriod === "weekly" ? "Wekelijks" : "Maandelijks"} doel
+                  </span>
+                  {goal.periodStartDate && (
+                    <Badge variant="outline" className="text-xs">
+                      Start: {format(new Date(goal.periodStartDate), "d MMM", { locale: nl })}
+                    </Badge>
+                  )}
+                  {goal.periodStartDate && (
+                    <Badge variant="secondary" className="text-xs">
+                      Reset: {format(
+                        goal.resetPeriod === "weekly" 
+                          ? addDays(new Date(goal.periodStartDate), 7)
+                          : addMonths(new Date(goal.periodStartDate), 1),
+                        "d MMM", 
+                        { locale: nl }
+                      )}
+                    </Badge>
+                  )}
+                </div>
+                <PeriodHistory goalId={goal.id} unit={goal.unit || undefined} />
+              </div>
+            )}
+
+            {goal.targetDate && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground p-2">
+                <CalendarDays className="w-4 h-4" />
+                <span>Deadline: {format(new Date(goal.targetDate), "d MMMM yyyy", { locale: nl })}</span>
+              </div>
+            )}
+
             {goal.type === "room" && goal.metadata && (
               <div className="bg-card rounded-xl border border-border p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -461,41 +496,6 @@ export function GoalDetailSheet({ goal, open, onOpenChange }: GoalDetailSheetPro
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {goal.resetPeriod && goal.resetPeriod !== "none" && (
-              <div className="bg-card rounded-xl border border-border p-4 space-y-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {goal.resetPeriod === "weekly" ? "Wekelijks" : "Maandelijks"} doel
-                  </span>
-                  {goal.periodStartDate && (
-                    <Badge variant="outline" className="text-xs">
-                      Start: {format(new Date(goal.periodStartDate), "d MMM", { locale: nl })}
-                    </Badge>
-                  )}
-                  {goal.periodStartDate && (
-                    <Badge variant="secondary" className="text-xs">
-                      Reset: {format(
-                        goal.resetPeriod === "weekly" 
-                          ? addDays(new Date(goal.periodStartDate), 7)
-                          : addMonths(new Date(goal.periodStartDate), 1),
-                        "d MMM", 
-                        { locale: nl }
-                      )}
-                    </Badge>
-                  )}
-                </div>
-                <PeriodHistory goalId={goal.id} unit={goal.unit || undefined} />
-              </div>
-            )}
-
-            {goal.targetDate && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CalendarDays className="w-4 h-4" />
-                <span>Deadline: {format(new Date(goal.targetDate), "d MMMM yyyy", { locale: nl })}</span>
               </div>
             )}
 

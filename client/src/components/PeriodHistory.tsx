@@ -1,8 +1,8 @@
 import { usePeriodHistory } from "@/hooks/use-goals";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
-import { Calendar, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface PeriodHistoryProps {
@@ -37,6 +37,10 @@ export function PeriodHistory({ goalId, unit }: PeriodHistoryProps) {
     }
   };
 
+  const sortedHistory = [...history].sort((a, b) => 
+    new Date(b.periodEnd).getTime() - new Date(a.periodEnd).getTime()
+  );
+
   return (
     <div className="space-y-3">
       <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -44,11 +48,11 @@ export function PeriodHistory({ goalId, unit }: PeriodHistoryProps) {
         Vorige periodes
       </h4>
       <div className="space-y-2">
-        {history.slice(0, 10).map((period, index) => {
+        {sortedHistory.slice(0, 10).map((period, index) => {
           const percentage = period.targetValue 
             ? Math.round((period.finalValue / period.targetValue) * 100) 
             : null;
-          const previousPeriod = history[index + 1];
+          const previousPeriod = sortedHistory[index + 1];
           const trend = previousPeriod 
             ? period.finalValue - previousPeriod.finalValue 
             : 0;
