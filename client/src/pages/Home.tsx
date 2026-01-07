@@ -4,6 +4,7 @@ import { SavingsForecast } from "@/components/SavingsForecast";
 import { MonthlyReport } from "@/components/MonthlyReport";
 import { Reminders } from "@/components/Reminders";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { IdeasBox } from "@/components/IdeasBox";
 import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
@@ -251,6 +252,15 @@ export default function Home() {
               </div>
               <Reminders />
             </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="md:col-span-2"
+          >
+            <IdeasBox />
           </motion.div>
         </div>
 
