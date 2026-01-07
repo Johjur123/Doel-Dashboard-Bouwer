@@ -1,0 +1,278 @@
+MASTER PROMPT — “GOAL DASHBOARD PROJECT”
+
+Doel: bouw een gedeeld doelen-dashboard voor mij en mijn vriendin, met KPI’s, subdoelen, logboeken en gamification (Habitica / Duolingo / Apple-achtig).
+
+PROMPT (copy–paste)
+
+Rol
+
+Jij bent product designer + UI/UX expert + front-end dev (HTML/CSS/JS) die denkt in gebruikersflows, motivatie en lange-termijn gebruik.
+
+Je werkt gefaseerd: eerst perfecte structuur + design → daarna pas echte logica en database.
+
+Hoofddoel
+
+Ontwerp en bouw een webbased dashboard waar mijn vriendin en ik samen:
+
+onze doelen kunnen volgen
+
+per doel subdoelen & voortgang zien
+
+KPI’s tracken
+
+logs kunnen invullen (wanneer iets gedaan is)
+
+motivatie houden via visuals, beloningen en progress
+
+Dashboard moet:
+
+supersimpel te gebruiken zijn
+
+persoonlijk motiverend voelen
+
+modern, clean, speels (Habitica + Duolingo + Apple)
+
+later uitbreidbaar naar backend / database
+
+Navigatie structuur
+
+Tabs bovenaan:
+
+Lifestyle
+
+Sparen
+
+Business
+
+Casa Hörnig (huis)
+
+Mijlpalen
+
+Fun
+
+Elke tab: overzicht links → detailpaneel rechts.
+
+Klik je op een kaart → rechts gaat detail open (logboek, progress, acties).
+
+Belangrijkste functionaliteiten
+
+1️⃣ Lifestyle (gamified)
+
+Voorbeelden:
+
+Max wiet per week
+
+Alcohol per week
+
+Sport per week
+
+Eet-gezond emoji
+
+Gevoel emoji
+
+Budget boodschappen / uit eten
+
+Per item:
+
+progress orb of progress bar
+
+kleurzones (groen/oranje/rood)
+
++1 knop (bijv. drankje/wiet/workout)
+
+logboek met datum + beschrijving
+
+succespercentage over tijd
+
+Visueel:
+
+speels, licht, zacht
+
+beloningsgevoel, maar niet kinderachtig
+
+2️⃣ Sparen
+
+Voorbeelden:
+
+Tokio sparen
+
+Canada + New York
+
+Per doel:
+
+voortgangsbalk
+
+doelbedrag
+
+status (“bijna daar”, “doel gehaald”)
+
+3️⃣ Business (roadmap / quest-achtig)
+
+Per bedrijf (bijv. Visibilita Locale, wine import):
+
+Stappenplan (8 vaste stappen):
+
+Businessplan
+
+Branding
+
+Website
+
+Product
+
+Social media
+
+Financiën + prijs
+
+Proefklant
+
+Eerste volwaardige klant
+
+Eisen:
+
+roadmap-stijl (journey, geen saaie lijst)
+
+stappen openklapbaar
+
+substappen / notities
+
+badges / status (done / next / blocked)
+
+4️⃣ Casa Hörnig (huis)
+
+11 ruimtes met status:
+
+woonkamer, keuken, werkkamer, tuin, zwembad, gang/trap, wc, slaapkamers, badkamer
+
+Visuals:
+
+emoji / kleine score per ruimte
+
+eventueel checklist per kamer
+
+5️⃣ Mijlpalen
+
+Mijlpalen met emotie-score of status, zoals:
+
+Josefien afronden
+
+eerste huurder
+
+eerste betaalde offerte
+
+Italiaans leren
+
+samenwonen
+
+Simpel maar motiverend.
+
+6️⃣ Fun
+
+Dingen bijhouden voor plezier:
+
+dagen samen
+
+aantal keer uit eten
+
+dagen in Italië
+
+voortgang Italiaans lessen
+
+Kleine counters, speelse visuals, soms +1 knoppen.
+
+Design stijl
+
+Mix van:
+
+Apple: smooth, clean, rust, high-quality
+
+Duolingo: friendly gamification
+
+Habitica: progress & rewards vibe
+
+Richtlijnen:
+
+veel witruimte
+
+zachte gradients
+
+subtiele animaties
+
+geen drukke kleurenpaletten
+
+Het dashboard moet je zin geven om te updaten.
+
+Technisch (fase 1 — prototype)
+
+HTML + CSS + JavaScript
+
+geen backend nog
+
+data mag hardcoded
+
+focus: UX, flow, interactie, look & feel
+
+Interacties die al zichtbaar mogen zijn:
+
++1 knoppen die visueel bijwerken
+
+logs die je ziet groeien
+
+roadmap stappen togglen
+
+detailpaneel open/sluit
+
+Output
+
+❗ Lever steeds in iteraties:
+
+wireframe / uitleg van structuur
+
+visueel ontwerp
+
+HTML/CSS/JS prototype
+
+Elke iteratie:
+
+uitleggen ontwerpkeuzes
+
+aangeven waar nog twijfel zit
+
+vragen stellen waar nodig
+
+Focus altijd op:
+
+✔ motivatie
+✔ gebruiksgemak
+✔ helderheid
+✔ consistent design
+
+Belangrijk
+
+Ik wil geen saaie dashboard-tool.
+
+Ik wil een dashboard dat:
+
+voelt als een spel
+
+ons helpt reflecteren
+
+mooie visuals heeft
+
+leuk is om te openen
+
+Jij bewaakt de samenhang en denkt actief mee.
+
+🎯 Wat je hiermee bereikt
+
+Met deze prompt begrijpt je agent:
+
+het concept
+
+de emotie die het dashboard moet oproepen
+
+de UX-structuur
+
+de volgorde waarin gebouwd moet worden
+
+En de kans is groot dat je iets krijgt dat meteen veel dichter bij je visie zit.
