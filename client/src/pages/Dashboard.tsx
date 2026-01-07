@@ -148,6 +148,31 @@ export default function Dashboard() {
     });
   };
 
+  const handleAddSubstep = (goal: Goal, stepIndex: number, title: string) => {
+    if (!title.trim() || !goal.metadata) return;
+    const metadata = goal.metadata as any;
+    const steps = [...(metadata.steps as RoadmapStep[])];
+    const substeps = [...(steps[stepIndex].substeps || []), { title: title.trim(), completed: false }];
+    steps[stepIndex] = { ...steps[stepIndex], substeps };
+    updateGoal.mutate({
+      id: goal.id,
+      metadata: { ...metadata, steps },
+    });
+  };
+
+  const handleRemoveSubstep = (e: React.MouseEvent, goal: Goal, stepIndex: number, substepIndex: number) => {
+    e.stopPropagation();
+    if (!goal.metadata) return;
+    const metadata = goal.metadata as any;
+    const steps = [...(metadata.steps as RoadmapStep[])];
+    const substeps = steps[stepIndex].substeps?.filter((_, i) => i !== substepIndex) || [];
+    steps[stepIndex] = { ...steps[stepIndex], substeps };
+    updateGoal.mutate({
+      id: goal.id,
+      metadata: { ...metadata, steps },
+    });
+  };
+
   const toggleExpanded = (e: React.MouseEvent, goalId: number) => {
     e.stopPropagation();
     setExpandedGoals(prev => {
@@ -244,6 +269,8 @@ export default function Dashboard() {
                         onRemoveRoomItem={handleRemoveRoomItem}
                         onAddRoadmapStep={handleAddRoadmapStep}
                         onRemoveRoadmapStep={handleRemoveRoadmapStep}
+                        onAddSubstep={handleAddSubstep}
+                        onRemoveSubstep={handleRemoveSubstep}
                       />
                     ))
                   )}
@@ -277,9 +304,11 @@ interface GoalCardProps {
   onRemoveRoomItem: (e: React.MouseEvent, goal: Goal, itemIndex: number) => void;
   onAddRoadmapStep: (goal: Goal, title: string) => void;
   onRemoveRoadmapStep: (e: React.MouseEvent, goal: Goal, stepIndex: number) => void;
+  onAddSubstep: (goal: Goal, stepIndex: number, title: string) => void;
+  onRemoveSubstep: (e: React.MouseEvent, goal: Goal, stepIndex: number, substepIndex: number) => void;
 }
 
-function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, onToggleRoomItem, onToggleExpand, onMilestoneToggle, onAddRoomItem, onRemoveRoomItem, onAddRoadmapStep, onRemoveRoadmapStep }: GoalCardProps) {
+function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, onToggleRoomItem, onToggleExpand, onMilestoneToggle, onAddRoomItem, onRemoveRoomItem, onAddRoadmapStep, onRemoveRoadmapStep, onAddSubstep, onRemoveSubstep }: GoalCardProps) {
   if (goal.category === 'lifestyle') {
     return <LifestyleCard goal={goal} index={index} onClick={onClick} onQuickLog={onQuickLog} />;
   }
@@ -287,7 +316,7 @@ function GoalCard({ goal, index, expanded, onClick, onQuickLog, onToggleStep, on
     return <SavingsCard goal={goal} index={index} onClick={onClick} onQuickLog={onQuickLog} />;
   }
   if (goal.category === 'business') {
-    return <BusinessCard goal={goal} index={index} expanded={expanded} onClick={onClick} onToggleStep={onToggleStep} onToggleExpand={onToggleExpand} onAddStep={onAddRoadmapStep} onRemoveStep={onRemoveRoadmapStep} />;
+    return <BusinessCard goal={goal} index={index} expanded={expanded} onClick={onClick} onToggleStep={onToggleStep} onToggleExpand={onToggleExpand} onAddStep={onAddRoadmapStep} onRemoveStep={onRemoveRoadmapStep} onAddSubstep={onAddSubstep} onRemoveSubstep={onRemoveSubstep} />;
   }
   if (goal.category === 'casa') {
     return <CasaCard goal={goal} index={index} expanded={expanded} onClick={onClick} onToggleRoomItem={onToggleRoomItem} onToggleExpand={onToggleExpand} onAddItem={onAddRoomItem} onRemoveItem={onRemoveRoomItem} />;
@@ -411,7 +440,7 @@ function SavingsCard({ goal, index, onClick, onQuickLog }: { goal: Goal; index: 
   );
 }
 
-function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleExpand, onAddStep, onRemoveStep }: { 
+function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleExpand, onAddStep, onRemoveStep, onAddSubstep, onRemoveSubstep }: { 
   goal: Goal; 
   index: number; 
   expanded: boolean; 
@@ -420,9 +449,13 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
   onToggleExpand: (e: React.MouseEvent, goalId: number) => void;
   onAddStep: (goal: Goal, title: string) => void;
   onRemoveStep: (e: React.MouseEvent, goal: Goal, stepIndex: number) => void;
+  onAddSubstep: (goal: Goal, stepIndex: number, title: string) => void;
+  onRemoveSubstep: (e: React.MouseEvent, goal: Goal, stepIndex: number, substepIndex: number) => void;
 }) {
   const [newStepTitle, setNewStepTitle] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [addingSubstepFor, setAddingSubstepFor] = useState<number | null>(null);
+  const [newSubstepTitle, setNewSubstepTitle] = useState("");
   
   const metadata = goal.metadata as any;
   const steps = (metadata?.steps || []) as RoadmapStep[];
@@ -435,6 +468,15 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
       onAddStep(goal, newStepTitle);
       setNewStepTitle("");
       setIsAdding(false);
+    }
+  };
+
+  const handleAddSubstep = (e: React.MouseEvent, stepIndex: number) => {
+    e.stopPropagation();
+    if (newSubstepTitle.trim()) {
+      onAddSubstep(goal, stepIndex, newSubstepTitle);
+      setNewSubstepTitle("");
+      setAddingSubstepFor(null);
     }
   };
 
@@ -520,6 +562,13 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
                       </span>
                     )}
                     <button
+                      onClick={(e) => { e.stopPropagation(); setAddingSubstepFor(addingSubstepFor === idx ? null : idx); }}
+                      className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                      data-testid={`button-add-substep-${goal.id}-${idx}`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                    <button
                       onClick={(e) => onRemoveStep(e, goal, idx)}
                       className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
                       data-testid={`button-remove-step-${goal.id}-${idx}`}
@@ -528,31 +577,72 @@ function BusinessCard({ goal, index, expanded, onClick, onToggleStep, onToggleEx
                     </button>
                   </motion.div>
                   
-                  {step.substeps && step.substeps.length > 0 && (
-                    <div className="ml-8 space-y-1">
-                      {step.substeps.map((substep, subIdx) => (
-                        <motion.div
-                          key={subIdx}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: (idx * 0.03) + (subIdx * 0.02) }}
+                  <div className="ml-8 space-y-1">
+                    {step.substeps && step.substeps.map((substep, subIdx) => (
+                      <motion.div
+                        key={subIdx}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: (idx * 0.03) + (subIdx * 0.02) }}
+                        className={cn(
+                          "flex items-center gap-2 p-1.5 rounded transition-colors text-sm group/sub",
+                          substep.completed ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <button
                           onClick={(e) => onToggleStep(e, goal, idx, subIdx)}
                           className={cn(
-                            "flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors text-sm",
-                            substep.completed ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          <div className={cn(
                             "w-4 h-4 rounded border flex items-center justify-center shrink-0",
                             substep.completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30"
-                          )}>
-                            {substep.completed && <Check className="w-2.5 h-2.5" />}
-                          </div>
-                          <span>{substep.title}</span>
+                          )}
+                        >
+                          {substep.completed && <Check className="w-2.5 h-2.5" />}
+                        </button>
+                        <span className="flex-1">{substep.title}</span>
+                        <button
+                          onClick={(e) => onRemoveSubstep(e, goal, idx, subIdx)}
+                          className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover/sub:opacity-100 transition-all"
+                          data-testid={`button-remove-substep-${goal.id}-${idx}-${subIdx}`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </motion.div>
+                    ))}
+                    
+                    <AnimatePresence>
+                      {addingSubstepFor === idx && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="flex gap-2 pt-1"
+                        >
+                          <input
+                            type="text"
+                            value={newSubstepTitle}
+                            onChange={(e) => setNewSubstepTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleAddSubstep(e as any, idx);
+                              if (e.key === "Escape") setAddingSubstepFor(null);
+                            }}
+                            placeholder="Nieuwe substap..."
+                            className="flex-1 px-2 py-1 rounded bg-secondary border-0 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                            data-testid={`input-new-substep-${goal.id}-${idx}`}
+                          />
+                          <button
+                            onClick={(e) => handleAddSubstep(e, idx)}
+                            disabled={!newSubstepTitle.trim()}
+                            className="px-2 py-1 bg-blue-500 text-white rounded text-xs font-medium disabled:opacity-50 hover:bg-blue-600 transition-colors"
+                            data-testid={`button-save-substep-${goal.id}-${idx}`}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
                         </motion.div>
-                      ))}
-                    </div>
-                  )}
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               ))}
               
